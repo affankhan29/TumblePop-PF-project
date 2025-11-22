@@ -194,7 +194,7 @@ for (int j = 0; j < width; j++)
 	while (window.isOpen())
 	{
 
-		while (window.pollEvent(ev))
+		while (window.pollEvent(ev)) //for one time execution (clicks , presses ,etc)
 		{
 			if (ev.type == Event::Closed) 
 			{
@@ -208,9 +208,17 @@ for (int j = 0; j < width; j++)
 		}
 
 		//presing escape to close
-		if (Keyboard::isKeyPressed(Keyboard::Escape))
+		if (Keyboard::isKeyPressed(Keyboard::Escape)) //for elements that get checked every frame (holding)
 		{
 			window.close();
+		}
+		if (Keyboard::isKeyPressed(Keyboard::D))
+		{
+			player_x += speed;
+		}
+		if (Keyboard::isKeyPressed(Keyboard::A))
+		{
+			player_x -= speed;
 		}
 
 		window.clear();
@@ -233,4 +241,3 @@ for (int j = 0; j < width; j++)
 
 	return 0;
 }
-
