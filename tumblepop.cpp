@@ -61,7 +61,45 @@ void player_gravity(char** lvl, float& offset_y, float& velocityY, bool& onGroun
 		velocityY = 0;
 	}
 }
-
+void screenborder(float &player_x , float &player_y , int &playerwidth , float &velocityY , int &screenx ){
+	if(player_x < 0)
+		player_x = 0;  //left border
+	if(player_y <0 ){	//top border
+		player_y = 0;
+		velocityY = 0;
+	}
+	if(player_x + playerwidth > screenx) //right border
+		player_x = screen_x - playerwidth;
+}
+void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool &isJumping ,float &player_x , float &player_y , Sprite &PlayerSprite, float &speed , const int &cell_size , Texture &PlayerTexture , int &PlayerHeight){
+	if(Keyboard::isKeyPressed(Keyboard::Up)){
+			if(onGround){
+				velocityY = jumpStrength;
+				onGround = false;
+				isJumping = true;
+			}
+		}
+	
+		int texW = (int)PlayerTexture.getSize().x;
+		int texH = (int)PlayerTexture.getSize().y;
+		if (Keyboard::isKeyPressed(Keyboard::Left))
+		{
+			player_x -= speed;
+			//for flipping
+        	PlayerSprite.setTextureRect(IntRect(0, 0, texW, texH));//draws the picture normally
+		}
+		if (Keyboard::isKeyPressed(Keyboard::Right))
+		{
+			player_x += speed;
+			//for flipping
+        	PlayerSprite.setTextureRect(IntRect(texW, 0, -texW, texH));  //starts from the right (hence flipped)
+		}
+		if(Keyboard :: isKeyPressed(Keyboard::Down)&& onGround && (player_y + PlayerHeight < 10 * cell_size)){  //last condition checks if the player is NOT on lowest row (player_Y + PlayerHeight means that the bottom of the player is being checked against the bottom most row instead of its any othe part )
+			player_y += cell_size; //moves one total cell size down
+			onGround = false; 		//is NOT on ground for that frame because its in air AND moving down
+			velocityY = 0;			//vertical velocity should be zero for that while
+		}
+}
 
 int main()
 {
@@ -150,7 +188,7 @@ int main()
 
 	PlayerTexture.loadFromFile("Data/player.png");
 	PlayerSprite.setTexture(PlayerTexture);
-	PlayerSprite.setScale(3,3);
+	PlayerSprite.setScale(3.f,3.f); //player is scaled by 3 , i.e , player size on screen becomes (96*3 , 102 *3) 
 	PlayerSprite.setPosition(player_x, player_y);
 
 
@@ -212,19 +250,15 @@ for (int j = 0; j < width; j++)
 		{
 			window.close();
 		}
-		if (Keyboard::isKeyPressed(Keyboard::D))
-		{
-			player_x += speed;
-		}
-		if (Keyboard::isKeyPressed(Keyboard::A))
-		{
-			player_x -= speed;
-		}
+		movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerTexture , PlayerHeight); //player movement function call
 
 		window.clear();
 
 		display_level(window, lvl, bgTex, bgSprite, blockTexture, blockSprite, height, width, cell_size);
+		int Pwidth_scaled  = PlayerTexture.getSize().x * 3; //setting width according to player size , i.e multiplying by 3
+		int Pheight_scaled = PlayerTexture.getSize().y * 3;
 		player_gravity(lvl,offset_y,velocityY,onGround,gravity,terminal_Velocity, player_x, player_y, cell_size, PlayerHeight, PlayerWidth);
+		screenborder(player_x , player_y , PlayerWidth , velocityY , screen_x); //function for setting borders of the window
 		PlayerSprite.setPosition(player_x, player_y);
 		window.draw(PlayerSprite);
 
@@ -241,3 +275,4 @@ for (int j = 0; j < width; j++)
 
 	return 0;
 }
+
