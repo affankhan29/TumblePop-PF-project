@@ -108,32 +108,34 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
     }
     sprite.setPosition(x, y);
 }
-
-
-
-
-
+/*2 problems were occuring with the orignal gravity function: 
+1. Player's position isn't updated to the platform
+2. and if it is , it is only updated when not colliding , hence some little changes are made 
+*/
 void player_gravity(char** lvl, float& offset_y, float& velocityY, bool& onGround, const float& gravity, float& terminal_Velocity, float& player_x, float& player_y, const int cell_size, int& Pheight, int& Pwidth)
 {
 	offset_y = player_y;
-
 	offset_y += velocityY;
-
+	int finalRow  = (int)(offset_y + Pheight) / cell_size ; 	//the row , or platform , to which the player WILL be moved , calculating this for the easy transfer of player to that postion/row 
 	char bottom_left_down = lvl[(int)(offset_y + Pheight) / cell_size][(int)(player_x ) / cell_size];
 	char bottom_right_down = lvl[(int)(offset_y  + Pheight) / cell_size][(int)(player_x + Pwidth) / cell_size];
 	char bottom_mid_down = lvl[(int)(offset_y + Pheight) / cell_size][(int)(player_x + Pwidth / 2) / cell_size];
 
-	if (bottom_left_down == '#' || bottom_mid_down == '#' || bottom_right_down == '#')
+	if (velocityY >= 0 &&(bottom_left_down == '#' || bottom_mid_down == '#' || bottom_right_down == '#')) //velocityY is also added because it checks IF moving down AND there IS a platform
 	{
+		//to actually land on the platform
+		player_y = (finalRow* cell_size) - Pheight;
+		velocityY = 0;
 		onGround = true;
 	}
 	else
 	{
+		//if no collision , keep moving
 		player_y = offset_y;
 		onGround = false;
 	}
 
-	if (!onGround)
+	if (!onGround) //applies gravity , if in air
 	{
 		velocityY += gravity;
 		if (velocityY >= terminal_Velocity) velocityY = terminal_Velocity;
@@ -225,7 +227,7 @@ int main()
 
 	float speed = 5;
 
-	const float jumpStrength = -20; // Initial jump velocity
+	const float jumpStrength = -17; // Initial jump velocity (changed from -20 to -17 because long jump was causing irregular collision detection)
 	const float gravity = 1;  // Gravity acceleration
 
 	bool isJumping = false;  // Track if jumping
@@ -408,3 +410,4 @@ for (int i = 0; i < height; i++)
 
 	return 0;
 }
+
