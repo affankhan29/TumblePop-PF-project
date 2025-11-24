@@ -29,8 +29,7 @@ void display_level(RenderWindow& window, char**lvl, Texture& bgTex,Sprite& bgSpr
 	}
 
 }
-// --- UNIVERSAL SPAWN FUNCTION (FIXED) ---
-// Now accepts 'enemy_height' so it can place feet on the floor correctly
+// UNIVERSAL SPAWN FUNCTION
 void spawn_enemy(float& x, float& y, Sprite& sprite, char** lvl, int height, int width, int cell_size, int enemy_height)
 {
     while (true) 
@@ -54,7 +53,7 @@ void spawn_enemy(float& x, float& y, Sprite& sprite, char** lvl, int height, int
     }
 }
 
-// --- UNIVERSAL MOVEMENT FUNCTION ---
+// UNIVERSAL MOVEMENT FUNCTION
 void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char** lvl, int width, int cell_size, int enemy_width, int enemy_height)
 {
     x += speed;
@@ -185,6 +184,12 @@ void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool
 			velocityY = 0;			//vertical velocity should be zero for that while
 		}
 }
+bool checkCollision(float player_x, float player_y, int player_width, int player_height, float enemy_x, float enemy_y, int enemy_width, int enemy_height){
+    return (player_x < enemy_x + enemy_width && //checks for overlap from player's left side
+			player_x + player_width > enemy_x && //''  '' '' '' right ''
+            player_y < enemy_y + enemy_height && // '' ''' '' top ''
+            player_y + player_height > enemy_y); //'' ''' '' bottom ''
+}
 
 int main()
 {
@@ -222,8 +227,8 @@ int main()
 	lvlMusic.setLoop(true);
 
 	//player data
-	float player_x = 500;
-	float player_y = 150;
+	float player_x = 50; //starting at bottom left hence x changed to 50 
+	float player_y = 538; //and y changed to 10(bottom platform)* cell_size - P_height 
 
 	float speed = 5;
 
@@ -317,7 +322,7 @@ for (int i = 0; i < height; i++)
 
     srand(time(0)); 
 
-    // --- SKELETON SPAWN LOOP ---
+    // SKELETON SPAWN LOOP
     for(int i = 0; i < NUM_SKELETONS; i++)
     {
         skeletons[i].setTexture(skeletonTexture);
@@ -331,7 +336,7 @@ for (int i = 0; i < height; i++)
         spawn_enemy(skel_x[i], skel_y[i], skeletons[i], lvl, height, width, cell_size, skel_height);
     }
 
-    // --- GHOST SPAWN LOOP ---
+    // GHOST SPAWN LOOP
     for(int i = 0; i < NUM_GHOSTS; i++)
     {
         ghosts[i].setTexture(ghostTexture);
@@ -341,7 +346,7 @@ for (int i = 0; i < height; i++)
         if (rand() % 2 == 0) ghost_speed[i] = 1.0f;
         else ghost_speed[i] = -1.0f;
 
-        // FIXED CALL: Passing 'ghost_height'
+        // Passing 'ghost_height'
         spawn_enemy(ghost_x[i], ghost_y[i], ghosts[i], lvl, height, width, cell_size, ghost_height);
     }
 
@@ -373,7 +378,6 @@ for (int i = 0; i < height; i++)
 			window.close();
 		}
 		movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerTexture , PlayerHeight); //player movement function call
-
 		window.clear();
 
 		display_level(window, lvl, bgTex, bgSprite, blockTexture, blockSprite, height, width, cell_size);
@@ -384,19 +388,32 @@ for (int i = 0; i < height; i++)
 		PlayerSprite.setPosition(player_x, player_y);
 		window.draw(PlayerSprite);
         
-		 // --- UPDATE & DRAW SKELETONS ---
+		 // update and draw skeletons
         for (int i = 0; i < NUM_SKELETONS; i++)
         {
             update_enemy_logic(skel_x[i], skel_y[i], skel_speed[i], skeletons[i], lvl, width, cell_size, skel_width, skel_height);
-            window.draw(skeletons[i]);
+            if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight,skel_x[i], skel_y[i], skel_width, skel_height)){
+        		//if collision occurs , resets player's position
+				player_x = 50; 
+				player_y = 538;
+       		}
+			window.draw(skeletons[i]);
         }
 
-        // --- UPDATE & DRAW GHOSTS ---
+        // update and draw ghosts
         for (int i = 0; i < NUM_GHOSTS; i++)
         {
             update_enemy_logic(ghost_x[i], ghost_y[i], ghost_speed[i], ghosts[i], lvl, width, cell_size, ghost_width, ghost_height);
-            window.draw(ghosts[i]);
+            if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight,ghost_x[i], ghost_y[i], ghost_width, ghost_height)){
+        		//if collision occurs , resets player's position
+				player_x = 50; 
+				player_y = 538;
+       		}
+			window.draw(ghosts[i]);
         }
+		// enemy collision check 
+
+
 		window.display();
 	}
 
@@ -410,4 +427,5 @@ for (int i = 0; i < height; i++)
 
 	return 0;
 }
+
 
