@@ -37,7 +37,7 @@ void spawn_enemy(float& x, float& y, Sprite& sprite, char** lvl, int height, int
         int r = rand() % (height - 2); 
         int c = rand() % width;        
 
-        if (lvl[r][c] != '#' && lvl[r + 1][c] == '#') 
+        if (lvl[r][c] != '#' && lvl[r + 1][c] == '#'&& (r + 1) != 10) 
         {
             x = c * cell_size;
             
@@ -69,7 +69,7 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
         
         if (check_ahead_col >= width) {
             speed = -1.0f;
-            sprite.setScale(-3, 3);
+            sprite.setScale(3, 3);
         }
         else 
         {
@@ -78,7 +78,7 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
 
             if (isWall || isLedge) {
                 speed = -1.0f;
-                sprite.setScale(-3, 3);
+                sprite.setScale(3, 3);
             }
         }
     }
@@ -89,7 +89,7 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
         
         if (left_edge_px <= 0) {
             speed = 1.0f; 
-            sprite.setScale(3, 3);
+            sprite.setScale(-3, 3);
         }
         else
         {
@@ -100,7 +100,7 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
 
                 if (isWall || isLedge) {
                     speed = 1.0f; 
-                    sprite.setScale(3, 3);
+                    sprite.setScale(-3, 3);
                 }
             }
         }
@@ -427,5 +427,4 @@ for (int i = 0; i < height; i++)
 
 	return 0;
 }
-
 
