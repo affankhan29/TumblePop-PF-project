@@ -155,7 +155,7 @@ void screenborder(float &player_x , float &player_y , int &playerwidth , float &
 	if(player_x + playerwidth > screenx) //right border
 		player_x = screen_x - playerwidth;
 }
-void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool &isJumping ,float &player_x , float &player_y , Sprite &PlayerSprite, float &speed , const int &cell_size , Texture &PlayerTexture , int &PlayerHeight){
+void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool &isJumping ,float &player_x , float &player_y , Sprite &PlayerSprite, float &speed , const int &cell_size , Texture &PlayerTexture , int &PlayerHeight, int selectedPlayer){
 	if(Keyboard::isKeyPressed(Keyboard::Up)){
 			if(onGround){
 				velocityY = jumpStrength;
@@ -164,20 +164,29 @@ void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool
 			}
 		}
 	
-		int texW = (int)PlayerTexture.getSize().x;
-		int texH = (int)PlayerTexture.getSize().y;
-		if (Keyboard::isKeyPressed(Keyboard::Left))
-		{
-			player_x -= speed;
-			//for flipping
-        	PlayerSprite.setTextureRect(IntRect(0, 0, texW, texH));//draws the picture normally
-		}
-		if (Keyboard::isKeyPressed(Keyboard::Right))
-		{
-			player_x += speed;
-			//for flipping
-        	PlayerSprite.setTextureRect(IntRect(texW, 0, -texW, texH));  //starts from the right (hence flipped)
-		}
+		 if (Keyboard::isKeyPressed(Keyboard::Left))
+        {
+            player_x -= speed;
+            // LEFT FACING LOGIC
+            if (selectedPlayer == 1) {
+                // Player 1 Sprite Sheet coordinates
+                PlayerSprite.setTextureRect(IntRect(10, 40, 35, 40)); 
+            } else {
+                // Player 2 Sprite Sheet coordinates
+                PlayerSprite.setTextureRect(IntRect(10, 230, 35, 40));
+            }
+        }
+        if (Keyboard::isKeyPressed(Keyboard::Right))
+        {
+            player_x += speed;
+            // RIGHT FACING (FLIPPED) LOGIC
+            // Standard flip: X becomes (X + Width), Width becomes negative (-Width)
+            if (selectedPlayer == 1) {
+                PlayerSprite.setTextureRect(IntRect(45, 40, -35, 40)); // 10+35=45
+            } else {
+                PlayerSprite.setTextureRect(IntRect(45, 230, -35, 40)); // 10+35=45
+            }
+        }
 		if(Keyboard :: isKeyPressed(Keyboard::Down)&& onGround && (player_y + PlayerHeight < 10 * cell_size)){  //last condition checks if the player is NOT on lowest row (player_Y + PlayerHeight means that the bottom of the player is being checked against the bottom most row instead of its any othe part )
 			player_y += cell_size; //moves one total cell size down
 			onGround = false; 		//is NOT on ground for that frame because its in air AND moving down
@@ -203,21 +212,55 @@ int main()
 	const int height = 14;
 	const int width = 18;
 	char** lvl;
-
+	////game state variables
+	 int state = 0;
+	 int timer = 0; //timer variable for state changes  representing frames
+     int selectedPlayer = 1; // 1 = Player 1, 2 = Player 2
 	//level and background textures and sprites
+	Texture bgstartTex;
+	Sprite bgstartSprite;
+	Texture playTex;
+	Sprite PlaySprite;
+	Texture playermenuTex;
+	Sprite PlayermenuSprite;
 	Texture bgTex;
 	Sprite bgSprite;
 	Texture blockTexture;
 	Sprite blockSprite;
+	Texture menutext1Tex;
+	Sprite menutext1Sprite;
+	Texture menutext2Tex;
+	Sprite menutext2aSprite;
+	Sprite menutext2bSprite;
+    bgstartTex.loadFromFile("Data/tumblepop.png");
+	bgstartSprite.setTexture(bgstartTex);
+	bgstartSprite.setPosition(0,0);
+	playermenuTex.loadFromFile("Data/menu.png");
+	PlayermenuSprite.setTexture(playermenuTex);
+	PlayermenuSprite.setPosition(0,0);
+	PlayermenuSprite.setScale(3.6,3.2);
 
 	bgTex.loadFromFile("Data/bg.png");
 	bgSprite.setTexture(bgTex);
 	bgSprite.setPosition(0,0);
+	playTex.loadFromFile("Data/play.png");
+	PlaySprite.setTexture(playTex);
+	PlaySprite.setPosition(400,400);
+	PlaySprite.setScale(0.7,0.4);
+
 
 	blockTexture.loadFromFile("Data/block1.png");
 	blockSprite.setTexture(blockTexture);
-	
-
+	menutext1Tex.loadFromFile("Data/text1.png");
+	menutext1Sprite.setTexture(menutext1Tex);
+	menutext1Sprite.setScale(0.7,0.4);
+	menutext2Tex.loadFromFile("Data/text2.png");
+	menutext2aSprite.setTexture(menutext2Tex);
+	menutext2aSprite.setTextureRect(IntRect(16,41,1050,81));
+	menutext2aSprite.setScale(0.2,0.2);
+	menutext2bSprite.setTexture(menutext2Tex);
+	menutext2bSprite.setTextureRect(IntRect(25,273,1050,81));
+	menutext2bSprite.setScale(0.2,0.2);
 	//Music initialisation
 	Music lvlMusic;
 
@@ -241,9 +284,10 @@ int main()
 	bool left_collide = false;
 	bool right_collide = false;
 
-	Texture PlayerTexture;
 	Sprite PlayerSprite;
-
+    Texture PlayerTexture;
+	Sprite Player1Sprite;
+  
 	bool onGround = false;
 
 	float offset_x = 0;
@@ -252,8 +296,8 @@ int main()
 
 	float terminal_Velocity = 20;
 
-	int PlayerHeight = 102;
-	int PlayerWidth = 96;
+	int PlayerHeight =93;
+	int PlayerWidth = 100;
 
 	bool up_button = false;
 
@@ -298,12 +342,18 @@ int main()
     Texture ghostTexture;
     ghostTexture.loadFromFile("Data/ghost.png");
 
+    Texture Player2Texture;
+	Sprite Player2Sprite;
 
-
-	PlayerTexture.loadFromFile("Data/player.png");
-	PlayerSprite.setTexture(PlayerTexture);
-	PlayerSprite.setScale(3.f,3.f); //player is scaled by 3 , i.e , player size on screen becomes (96*3 , 102 *3) 
-	PlayerSprite.setPosition(player_x, player_y);
+	PlayerTexture.loadFromFile("Data/player2.png");
+	Player1Sprite.setTexture(PlayerTexture);
+	Player1Sprite.setTextureRect(IntRect(10,40,35, 40));
+	Player1Sprite.setScale(2.5,2.5); 
+	Player1Sprite.setPosition(player_x, player_y);
+    Player2Texture.loadFromFile("Data/player2.png");
+	Player2Sprite.setTexture(Player2Texture);
+	Player2Sprite.setTextureRect(IntRect(10,230,35, 40));
+	Player2Sprite.setScale(2.0,2.0);
 
 
 	//creating level array
@@ -377,7 +427,66 @@ for (int i = 0; i < height; i++)
 		{
 			window.close();
 		}
-		movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerTexture , PlayerHeight); //player movement function call
+		
+	    if(state == 0) //start state
+		{
+             window.draw(bgstartSprite); 
+			 window.draw(PlaySprite); 
+		
+	     // check if timer is greater  10 (represent frames) and weather enter  key is pressed
+            if (Keyboard::isKeyPressed(Keyboard::Enter)) {
+                state = 1; ///represent menu state
+              
+            }
+		window.display();
+	}
+
+	else if (state == 1)
+	{
+		 window.draw(PlayermenuSprite); 
+	       // check if timer is greater  10 (represent frames) and weather enter  key is pressed
+		   // DISPLAYING CHARACTERS IN MENu
+         menutext1Sprite.setPosition(300, 200);
+		 window.draw(menutext1Sprite);
+		  menutext2aSprite.setPosition(270,600);
+		 window.draw(menutext2aSprite);
+		  menutext2bSprite.setPosition(625, 600);
+		 window.draw(menutext2bSprite);
+		 PlayerSprite.setScale(4.7, 4.7); 
+         Player2Sprite.setScale(4.7, 4.7);
+
+
+         PlayerSprite.setPosition(300, 400); 
+         window.draw(PlayerSprite);
+         Player2Sprite.setPosition(650, 395);
+         window.draw(Player2Sprite);
+
+            if (Keyboard::isKeyPressed(Keyboard::Num1) ) {
+                state = 2; 
+            
+				selectedPlayer = 1;
+				PlayerSprite.setScale(2.5, 2.5); 
+                Player2Sprite.setScale(2.3, 2.3);
+            }
+			else if (Keyboard::isKeyPressed(Keyboard::Num2) ) {
+                state = 2; 
+            
+				selectedPlayer = 2;
+				PlayerSprite.setScale(2.5, 2.5); 
+                Player2Sprite.setScale(2.3, 2.3);
+            }
+			if (selectedPlayer == 1) {
+			PlayerSprite = Player1Sprite;
+	       	} else {
+			PlayerSprite = Player2Sprite;
+		    }
+		window.display();
+	}
+	    
+        else if(state == 2) //gameplay state
+		{
+
+		movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerTexture , PlayerHeight,selectedPlayer); //player movement function call
 		window.clear();
 
 		display_level(window, lvl, bgTex, bgSprite, blockTexture, blockSprite, height, width, cell_size);
@@ -416,7 +525,7 @@ for (int i = 0; i < height; i++)
 
 		window.display();
 	}
-
+		}
 	//stopping music and deleting level array
 	lvlMusic.stop();
 	for (int i = 0; i < height; i++)
