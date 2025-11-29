@@ -69,7 +69,7 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
         
         if (check_ahead_col >= width) {
             speed = -1.0f;
-            sprite.setScale(3, 3);
+            sprite.setScale(2.5, 2.5);
         }
         else 
         {
@@ -78,7 +78,7 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
 
             if (isWall || isLedge) {
                 speed = -1.0f;
-                sprite.setScale(3, 3);
+                sprite.setScale(2.5, 2.5);
             }
         }
     }
@@ -89,7 +89,7 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
         
         if (left_edge_px <= 0) {
             speed = 1.0f; 
-            sprite.setScale(-3, 3);
+            sprite.setScale(-2.5, 2.5);
         }
         else
         {
@@ -100,7 +100,7 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
 
                 if (isWall || isLedge) {
                     speed = 1.0f; 
-                    sprite.setScale(-3, 3);
+                    sprite.setScale(-2.5, 2.5);
                 }
             }
         }
@@ -195,9 +195,9 @@ void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool
 }
 bool checkCollision(float player_x, float player_y, int player_width, int player_height, float enemy_x, float enemy_y, int enemy_width, int enemy_height){
     return (player_x < enemy_x + enemy_width && //checks for overlap from player's left side
-			player_x + player_width > enemy_x && //''  '' '' '' right ''
-            player_y < enemy_y + enemy_height && // '' ''' '' top ''
-            player_y + player_height > enemy_y); //'' ''' '' bottom ''
+			player_x + player_width> enemy_x && //''  '' '' '' right ''
+            player_y < enemy_y + enemy_height&& // '' ''' '' top ''
+            player_y + player_height  > enemy_y); //'' ''' '' bottom ''
 }
 
 int main()
@@ -326,8 +326,8 @@ int main()
     float skel_y[NUM_SKELETONS];
     float skel_speed[NUM_SKELETONS];
     Sprite skeletons[NUM_SKELETONS]; 
-    int skel_width = 32 * 3; 
-    int skel_height = 38 * 3;
+    int skel_width = 32 * 2.5; //32
+    int skel_height = 38 * 2.5;//38
     Texture skeletonTexture;
     skeletonTexture.loadFromFile("Data/skeleton.png");
 
@@ -337,8 +337,8 @@ int main()
     float ghost_y[NUM_GHOSTS];
     float ghost_speed[NUM_GHOSTS];
     Sprite ghosts[NUM_GHOSTS];
-    int ghost_width = 35 * 3; 
-    int ghost_height = 29 * 3; 
+    int ghost_width = 35 * 2.5; 
+    int ghost_height = 29 * 2.5; 
     Texture ghostTexture;
     ghostTexture.loadFromFile("Data/ghost.png");
 
@@ -377,11 +377,18 @@ for (int i = 0; i < height; i++)
     {
         skeletons[i].setTexture(skeletonTexture);
         skeletons[i].setTextureRect(IntRect(8,34,32,38));
-        skeletons[i].setScale(3, 3);
+        skeletons[i].setScale(-2.5, 2.5);
         
-        if (rand() % 2 == 0) skel_speed[i] = 1.0f;
-        else skel_speed[i] = -1.0f;
+        if (rand() % 2 == 0){ 
+			skel_speed[i] = 1.0f;
+			 skeletons[i].setScale(-2.5, 2.5); // so that it faces right
+		}
+        else {
 
+			skel_speed[i] = -1.0f;
+			 skeletons[i].setScale(2.5, 2.5);
+		}
+        
         // FIXED CALL: Passing 'skel_height'
         spawn_enemy(skel_x[i], skel_y[i], skeletons[i], lvl, height, width, cell_size, skel_height);
     }
@@ -391,10 +398,19 @@ for (int i = 0; i < height; i++)
     {
         ghosts[i].setTexture(ghostTexture);
         ghosts[i].setTextureRect(IntRect(8,9,35,29));
-        ghosts[i].setScale(3, 3);
+        ghosts[i].setScale(-2.5, 2.5);
         
-        if (rand() % 2 == 0) ghost_speed[i] = 1.0f;
-        else ghost_speed[i] = -1.0f;
+        if (rand() % 2 == 0) {
+			
+			ghost_speed[i] = 1.0f;
+			ghosts[i].setScale(-2.5, 2.5); // so that it faces right
+		}
+        else {
+			ghost_speed[i] = -1.0f;
+			ghosts[i].setScale(2.5, 2.5);
+		}
+
+
 
         // Passing 'ghost_height'
         spawn_enemy(ghost_x[i], ghost_y[i], ghosts[i], lvl, height, width, cell_size, ghost_height);
