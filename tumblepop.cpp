@@ -155,7 +155,7 @@ void screenborder(float &player_x , float &player_y , int &playerwidth , float &
 	if(player_x + playerwidth > screenx) //right border
 		player_x = screen_x - playerwidth;
 }
-void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool &isJumping ,float &player_x , float &player_y , Sprite &PlayerSprite, float &speed , const int &cell_size , Texture &PlayerTexture , int &PlayerHeight, int selectedPlayer){
+void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool &isJumping ,float &player_x , float &player_y , Sprite &PlayerSprite, float &speed , const int &cell_size , Texture &PlayerTexture , int &PlayerHeight, int selectedPlayer , int &walkFrame , bool &facingRight){
 	if(Keyboard::isKeyPressed(Keyboard::Up)){
 			if(onGround){
 				velocityY = jumpStrength;
@@ -166,25 +166,44 @@ void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool
 	
 		 if (Keyboard::isKeyPressed(Keyboard::Left))
         {
+			  facingRight = false;   // now we are facing right
             player_x -= speed;
             // LEFT FACING LOGIC
             if (selectedPlayer == 1) {
-                // Player 1 Sprite Sheet coordinates
-                PlayerSprite.setTextureRect(IntRect(10, 40, 35, 40)); 
+                // Player 1 Sprite Sheet coordinates animation frames 
+                if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(25, 39, 208, 261));
+				else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(260, 39, 208, 261));
+				else if (walkFrame == 2) PlayerSprite.setTextureRect(IntRect(481, 39, 208, 261));
+				else if (walkFrame == 3) PlayerSprite.setTextureRect(IntRect(702, 39, 208, 261));
+				else if (walkFrame == 4) PlayerSprite.setTextureRect(IntRect(923, 39, 208, 261));
             } else {
                 // Player 2 Sprite Sheet coordinates
-                PlayerSprite.setTextureRect(IntRect(10, 230, 35, 40));
+                 if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(23,56,173, 218));
+				else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(219, 56,173, 218));
+				else if (walkFrame == 2) PlayerSprite.setTextureRect(IntRect(403, 56,173, 218));
+				else if (walkFrame == 3) PlayerSprite.setTextureRect(IntRect(587, 56,173, 218));
+				else if (walkFrame == 4) PlayerSprite.setTextureRect(IntRect(771, 56,173, 218));
             }
         }
         if (Keyboard::isKeyPressed(Keyboard::Right))
         {
+			facingRight = true;   // now we are facing right
             player_x += speed;
             // RIGHT FACING (FLIPPED) LOGIC
             // Standard flip: X becomes (X + Width), Width becomes negative (-Width)
             if (selectedPlayer == 1) {
-                PlayerSprite.setTextureRect(IntRect(45, 40, -35, 40)); // 10+35=45
+                if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(233, 39, -208, 261)); /// added width in X positon and made width negative
+				else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(467, 39, -208, 261));
+				else if (walkFrame == 2) PlayerSprite.setTextureRect(IntRect(688, 39, -208, 261));
+				else if (walkFrame == 3) PlayerSprite.setTextureRect(IntRect(909, 39, -208, 261));
+				else if (walkFrame == 4) PlayerSprite.setTextureRect(IntRect(1130, 39, -208, 261));
+       
             } else {
-                PlayerSprite.setTextureRect(IntRect(45, 230, -35, 40)); // 10+35=45
+              if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(196, 56,-173, 218)); /// added width in X positon and made width negative
+				else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(392, 56,-173, 218));
+				else if (walkFrame == 2) PlayerSprite.setTextureRect(IntRect(576, 56,-173, 218));
+				else if (walkFrame == 3) PlayerSprite.setTextureRect(IntRect(760, 56,-173, 218));
+				else if (walkFrame == 4) PlayerSprite.setTextureRect(IntRect(944, 56,-173, 218));
             }
         }
 		if(Keyboard :: isKeyPressed(Keyboard::Down)&& onGround && (player_y + PlayerHeight < 10 * cell_size)){  //last condition checks if the player is NOT on lowest row (player_Y + PlayerHeight means that the bottom of the player is being checked against the bottom most row instead of its any othe part )
@@ -192,6 +211,31 @@ void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool
 			onGround = false; 		//is NOT on ground for that frame because its in air AND moving down
 			velocityY = 0;			//vertical velocity should be zero for that while
 		}
+		// IDLE: no left/right key pressed
+		if (!Keyboard::isKeyPressed(Keyboard::Left) &&
+			!Keyboard::isKeyPressed(Keyboard::Right))
+		{
+			walkFrame = 0;  // reset animation frame when idle
+
+			if (selectedPlayer == 1) {
+				if (facingRight) {
+					// idle facing right
+					PlayerSprite.setTextureRect(IntRect(233, 39, -208, 261));
+				} else {
+					// idle facing left
+					PlayerSprite.setTextureRect(IntRect(25, 39, 208, 261));
+				}
+			} else {
+				if (facingRight) {
+					// player 2 idle right
+					PlayerSprite.setTextureRect(IntRect(196, 56, -173, 218));
+				} else {
+					// player 2 idle left
+					PlayerSprite.setTextureRect(IntRect(23, 56, 173, 218));
+				}
+			}
+		}
+
 }
 bool checkCollision(float player_x, float player_y, int player_width, int player_height, float enemy_x, float enemy_y, int enemy_width, int enemy_height){
     return (player_x < enemy_x + enemy_width && //checks for overlap from player's left side
@@ -215,7 +259,9 @@ int main()
 	////game state variables
 	 int state = 0;
 	 int timer = 0; //timer variable for state changes  representing frames
+	 int walkFrame = 0;   // 0..3 for player  animation
      int selectedPlayer = 1; // 1 = Player 1, 2 = Player 2
+	 bool facingRight = true; // to track which way the player is facing
 	//level and background textures and sprites
 	Texture bgstartTex;
 	Sprite bgstartSprite;
@@ -284,10 +330,7 @@ int main()
 	bool left_collide = false;
 	bool right_collide = false;
 
-	Sprite PlayerSprite;
-    Texture PlayerTexture;
-	Sprite Player1Sprite;
-  
+	
 	bool onGround = false;
 
 	float offset_x = 0;
@@ -296,9 +339,9 @@ int main()
 
 	float terminal_Velocity = 20;
 
-	int PlayerHeight =93;
-	int PlayerWidth = 100;
-
+	int PlayerHeight;
+	int PlayerWidth ;
+   
 	bool up_button = false;
 
 	char top_left = '\0';
@@ -342,18 +385,22 @@ int main()
     Texture ghostTexture;
     ghostTexture.loadFromFile("Data/ghost.png");
 
+	//player sprites
+	Texture PlayerTexture;
+    Sprite PlayerSprite;
+    Texture Player1Texture;
+	Sprite Player1Sprite;
+  
     Texture Player2Texture;
 	Sprite Player2Sprite;
 
-	PlayerTexture.loadFromFile("Data/player2.png");
-	Player1Sprite.setTexture(PlayerTexture);
-	Player1Sprite.setTextureRect(IntRect(10,40,35, 40));
-	Player1Sprite.setScale(2.5,2.5); 
+	Player1Texture.loadFromFile("Data/player1.png");
+	Player1Sprite.setTexture(Player1Texture);
+	Player1Sprite.setTextureRect(IntRect(25,39,208, 261));
 	Player1Sprite.setPosition(player_x, player_y);
     Player2Texture.loadFromFile("Data/player2.png");
 	Player2Sprite.setTexture(Player2Texture);
-	Player2Sprite.setTextureRect(IntRect(10,230,35, 40));
-	Player2Sprite.setScale(2.0,2.0);
+	Player2Sprite.setTextureRect(IntRect(23,56,173, 218));
 
 
 	//creating level array
@@ -468,8 +515,8 @@ for (int i = 0; i < height; i++)
 		 window.draw(menutext2aSprite);
 		  menutext2bSprite.setPosition(625, 600);
 		 window.draw(menutext2bSprite);
-		 PlayerSprite.setScale(4.7, 4.7); 
-         Player2Sprite.setScale(4.7, 4.7);
+		 Player1Sprite.setScale(0.65, 0.65); 
+          Player2Sprite.setScale(0.8, 0.8);
 
 
          PlayerSprite.setPosition(300, 400); 
@@ -481,15 +528,22 @@ for (int i = 0; i < height; i++)
                 state = 2; 
             
 				selectedPlayer = 1;
-				PlayerSprite.setScale(2.5, 2.5); 
-                Player2Sprite.setScale(2.3, 2.3);
+				Player1Sprite.setScale(0.38, 0.38); 
+                Player2Sprite.setScale(0.41, 0.41); 
+				//SET SIZE FOR PLAYER 1
+				PlayerWidth  = 208 * 0.38;   // = 79
+				PlayerHeight = 261 * 0.38;   // = 99
             }
 			else if (Keyboard::isKeyPressed(Keyboard::Num2) ) {
                 state = 2; 
             
 				selectedPlayer = 2;
-				PlayerSprite.setScale(2.5, 2.5); 
-                Player2Sprite.setScale(2.3, 2.3);
+				Player1Sprite.setScale(0.38, 0.38); 
+                Player2Sprite.setScale(0.41, 0.41); 
+
+				//SET SIZE FOR PLAYER 2
+				PlayerWidth  = 173 * 0.41;   // = 71
+   			    PlayerHeight = 218 * 0.41;   // = 89
             }
 			if (selectedPlayer == 1) {
 			PlayerSprite = Player1Sprite;
@@ -501,8 +555,14 @@ for (int i = 0; i < height; i++)
 	    
         else if(state == 2) //gameplay state
 		{
-
-		movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerTexture , PlayerHeight,selectedPlayer); //player movement function call
+         // advance animation frame every 10 game frames
+			timer++;
+			if (timer > 9)           // change this number to make animation faster/slower
+			{
+				walkFrame = (walkFrame + 1) % 5;   // 0,1,2,3,4 loop
+				timer = 0;
+			}
+		movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerTexture , PlayerHeight,selectedPlayer , walkFrame , facingRight); //player movement function call
 		window.clear();
 
 		display_level(window, lvl, bgTex, bgSprite, blockTexture, blockSprite, height, width, cell_size);
@@ -552,4 +612,3 @@ for (int i = 0; i < height; i++)
 
 	return 0;
 }
-
