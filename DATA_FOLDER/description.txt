@@ -1,1 +1,0 @@
-All the data , assests , animations etc.. for the project shall be placed in this folder
