@@ -11,6 +11,37 @@ using namespace std;
 int screen_x = 1136;
 int screen_y = 896;
 
+
+void animate_ghost(Sprite &ghost, int frame)
+{
+    // animating ghost frames
+   
+    if (frame == 0)      ghost.setTextureRect(IntRect(  8, 9, 35, 29));
+    else if (frame == 1) ghost.setTextureRect(IntRect( 57, 9, 35, 29));
+    else if (frame == 2) ghost.setTextureRect(IntRect( 107, 9, 35, 29));
+    else if (frame == 3) ghost.setTextureRect(IntRect(158, 9, 35, 29));
+    else if (frame == 4) ghost.setTextureRect(IntRect(214, 9, 35, 29));
+	else if (frame == 5) ghost.setTextureRect(IntRect(268, 9, 35, 29));
+	else if (frame == 6) ghost.setTextureRect(IntRect(319, 9, 35, 29));
+	else if (frame == 7) ghost.setTextureRect(IntRect(369, 9, 35, 29));
+	
+}
+
+void animate_skeleton(Sprite &skele, int frame)
+{
+    // animating skeleton frames
+   
+    if (frame == 0)      skele.setTextureRect(IntRect(8,34,32,38));
+    else if (frame == 1) skele.setTextureRect(IntRect(60,34,36,38));
+    else if (frame == 2) skele.setTextureRect(IntRect(112,34,33,38));
+    else if (frame == 3) skele.setTextureRect(IntRect(149,34,30,38));
+    else if (frame == 4) skele.setTextureRect(IntRect(193,34,24,38));
+	else if (frame == 5) skele.setTextureRect(IntRect(223,34,26,38));
+	else if (frame == 6) skele.setTextureRect(IntRect(261,34,24,38));
+	else if (frame == 7) skele.setTextureRect(IntRect(291,34,31,38));
+	
+}
+
 void display_level(RenderWindow& window, char**lvl, Texture& bgTex,Sprite& bgSprite,Texture& blockTexture,Sprite& blockSprite, const int height, const int width, const int cell_size)
 {
 	window.draw(bgSprite);
@@ -260,6 +291,7 @@ int main()
 	 int state = 0;
 	 int timer = 0; //timer variable for state changes  representing frames
 	 int walkFrame = 0;   // 0..3 for player  animation
+	 int enemyFrame = 0;  // 0..8 for ghost animation
      int selectedPlayer = 1; // 1 = Player 1, 2 = Player 2
 	 bool facingRight = true; // to track which way the player is facing
 	//level and background textures and sprites
@@ -557,9 +589,10 @@ for (int i = 0; i < height; i++)
 		{
          // advance animation frame every 10 game frames
 			timer++;
-			if (timer > 9)           // change this number to make animation faster/slower
+			if (timer > 9)           //  this number controls  animation speed faster/slower
 			{
 				walkFrame = (walkFrame + 1) % 5;   // 0,1,2,3,4 loop
+				enemyFrame = (enemyFrame + 1) % 8;   // 0,1,2,3 .... ,8 loop
 				timer = 0;
 			}
 		movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerTexture , PlayerHeight,selectedPlayer , walkFrame , facingRight); //player movement function call
@@ -577,6 +610,7 @@ for (int i = 0; i < height; i++)
         for (int i = 0; i < NUM_SKELETONS; i++)
         {
             update_enemy_logic(skel_x[i], skel_y[i], skel_speed[i], skeletons[i], lvl, width, cell_size, skel_width, skel_height);
+			animate_skeleton(skeletons[i], enemyFrame);
             if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight,skel_x[i], skel_y[i], skel_width, skel_height)){
         		//if collision occurs , resets player's position
 				player_x = 50; 
@@ -589,6 +623,7 @@ for (int i = 0; i < height; i++)
         for (int i = 0; i < NUM_GHOSTS; i++)
         {
             update_enemy_logic(ghost_x[i], ghost_y[i], ghost_speed[i], ghosts[i], lvl, width, cell_size, ghost_width, ghost_height);
+			animate_ghost(ghosts[i], enemyFrame);
             if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight,ghost_x[i], ghost_y[i], ghost_width, ghost_height)){
         		//if collision occurs , resets player's position
 				player_x = 50; 
