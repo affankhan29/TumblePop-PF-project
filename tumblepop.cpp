@@ -84,12 +84,11 @@ void spawn_enemy(float& x, float& y, Sprite& sprite, char** lvl, int height, int
     }
 }
 
-// UNIVERSAL MOVEMENT FUNCTION
+// universal movement function
 void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char** lvl, int width, int cell_size, int enemy_width, int enemy_height)
 {
     x += speed;
 
-    // Because we adjusted Spawn to be +10 into the floor, this check is now reliable for short ghosts too.
     int feet_row = (y + enemy_height - 5) / cell_size; 
     int body_row = feet_row - 1; 
 
@@ -99,8 +98,8 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
         int check_ahead_col = right_edge_px / cell_size;
         
         if (check_ahead_col >= width) {
-            speed = -1.0f;
-            sprite.setScale(2.5, 2.5);
+            speed = -1.0f; //turn around, now moving left
+            sprite.setScale(2.5, 2.5); //face left
         }
         else 
         {
@@ -108,35 +107,39 @@ void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char**
             bool isLedge = (lvl[feet_row][check_ahead_col] != '#');
 
             if (isWall || isLedge) {
-                speed = -1.0f;
-                sprite.setScale(2.5, 2.5);
+                speed = -1.0f; //turns around
+                sprite.setScale(2.5, 2.5); //face left
             }
         }
     }
     else // Moving LEFT
     {
-        int left_edge_px = x - enemy_width - 5; 
+        int left_edge_px = x - 5; //checks a few pixels in front of the left edge
         int check_ahead_col = left_edge_px / cell_size;
         
         if (left_edge_px <= 0) {
-            speed = 1.0f; 
-            sprite.setScale(-2.5, 2.5);
+            speed = 1.0f; //turn around, now moving right 
+            sprite.setScale(-2.5, 2.5); //face right
         }
-        else
+        else if (check_ahead_col >= 0) 
         {
-            if (check_ahead_col >= 0) 
-            {
-                bool isWall = (lvl[body_row][check_ahead_col] == '#');
-                bool isLedge = (lvl[feet_row][check_ahead_col] != '#');
+            bool isWall = (lvl[body_row][check_ahead_col] == '#');
+            bool isLedge = (lvl[feet_row][check_ahead_col] != '#');
 
-                if (isWall || isLedge) {
-                    speed = 1.0f; 
-                    sprite.setScale(-2.5, 2.5);
-                }
+            if (isWall || isLedge) {
+                speed = 1.0f; //turns around
+                sprite.setScale(-2.5, 2.5); //face right
             }
         }
     }
-    sprite.setPosition(x, y);
+    
+    // Position sprite based on current direction   (this was done to invert the hitbox for the collision check)
+    if (speed>=0) { //facing right
+        sprite.setPosition(x + enemy_width, y);// when facing right, flipped sprite draws to the left, so add enemy_width
+    }
+    else { //facing left
+        sprite.setPosition(x, y);
+    }
 }
 /*2 problems were occuring with the orignal gravity function: 
 1. Player's position isn't updated to the platform
@@ -353,7 +356,7 @@ int main()
 
 	float speed = 5;
 
-	const float jumpStrength = -17; // Initial jump velocity (changed from -20 to -17 because long jump was causing irregular collision detection)
+	const float jumpStrength = -16; // Initial jump velocity (changed from -20 to -16 because long jump was causing irregular collision detection)
 	const float gravity = 1;  // Gravity acceleration
 
 	bool isJumping = false;  // Track if jumping
@@ -647,3 +650,4 @@ for (int i = 0; i < height; i++)
 
 	return 0;
 }
+
