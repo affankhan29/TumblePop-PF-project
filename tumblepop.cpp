@@ -326,93 +326,147 @@ void screenborder(float &player_x , float &player_y , int &playerwidth , float &
         player_x = screen_x - playerwidth;
 }
 
-void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool &isJumping ,float &player_x , float &player_y , Sprite &PlayerSprite, float &speed , const int &cell_size , Texture &PlayerTexture , int &PlayerHeight, int selectedPlayer , int &walkFrame , bool &facingRight, char &vacuumdir){
-    if(Keyboard::isKeyPressed(Keyboard::Up)){
-            if(onGround){
-                velocityY = jumpStrength;
-                onGround = false;
-                isJumping = true;
-            }
+void movement(
+    bool &onGround, float &velocityY, const float &jumpStrength, bool &isJumping, 
+    float &player_x, float &player_y, Sprite &PlayerSprite, float &speed, 
+    const int &cell_size, int &PlayerHeight, int selectedPlayer, int &walkFrame, 
+    bool &facingRight, char &vacuumdir,
+    Texture &P1Norm, Texture &P2Norm, Texture &P1Vac, Texture &P2Vac)
+{
+    // Checking if Vacuum is active
+    bool isVacuuming = Keyboard::isKeyPressed(Keyboard::Space);
+
+
+    if (isVacuuming) {
+        if (selectedPlayer == 1) {
+        PlayerSprite.setTexture(P1Vac);
+         PlayerSprite.setScale(0.85, 0.85);
+           }
+            else
+           { 
+            PlayerSprite.setTexture(P2Vac);
+        PlayerSprite.setScale(0.56, 0.56);
+          } 
+    } 
+    else {
+        if (selectedPlayer == 1) PlayerSprite.setTexture(P1Norm);
+        else PlayerSprite.setTexture(P2Norm);
+        PlayerSprite.setScale(0.40, 0.40);
+    }
+
+    // tracking vaccum direction
+    if (Keyboard::isKeyPressed(Keyboard::W)) vacuumdir = 'W';
+    if (Keyboard::isKeyPressed(Keyboard::S)) vacuumdir = 'S';
+    if (Keyboard::isKeyPressed(Keyboard::A)) vacuumdir = 'A';
+    if (Keyboard::isKeyPressed(Keyboard::D)) vacuumdir = 'D';
+
+
+    // JUMPING
+    if (Keyboard::isKeyPressed(Keyboard::Up)) {
+        if (onGround) {
+            velocityY = jumpStrength;
+            onGround = false;
+            isJumping = true;
         }
-    
-         if (Keyboard::isKeyPressed(Keyboard::Left))
+    }
+
+    // LEFT MOVEMENT
+    if (Keyboard::isKeyPressed(Keyboard::Left))
+    {
+        if (vacuumdir == 'D') vacuumdir = 'A'; 
+        facingRight = false;
+        player_x -= speed;
+
+        // Only play walking animation if NOT using vacuum
+        if (!isVacuuming) 
         {
-            if(vacuumdir == 'D') //will only change vacuum direction if it is opposite    
-                vacuumdir = 'A';
-                
-            facingRight = false;   // now we are facing right
-            player_x -= speed;
-            // LEFT FACING LOGIC
             if (selectedPlayer == 1) {
-                // Player 1 Sprite Sheet coordinates animation frames 
                 if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(25, 39, 208, 261));
                 else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(260, 39, 208, 261));
                 else if (walkFrame == 2) PlayerSprite.setTextureRect(IntRect(481, 39, 208, 261));
                 else if (walkFrame == 3) PlayerSprite.setTextureRect(IntRect(702, 39, 208, 261));
                 else if (walkFrame == 4) PlayerSprite.setTextureRect(IntRect(923, 39, 208, 261));
             } else {
-                // Player 2 Sprite Sheet coordinates
-                 if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(23,56,173, 218));
-                else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(219, 56,173, 218));
-                else if (walkFrame == 2) PlayerSprite.setTextureRect(IntRect(403, 56,173, 218));
-                else if (walkFrame == 3) PlayerSprite.setTextureRect(IntRect(587, 56,173, 218));
-                else if (walkFrame == 4) PlayerSprite.setTextureRect(IntRect(771, 56,173, 218));
+                if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(23, 56, 173, 218));
+                else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(219, 56, 173, 218));
+                else if (walkFrame == 2) PlayerSprite.setTextureRect(IntRect(403, 56, 173, 218));
+                else if (walkFrame == 3) PlayerSprite.setTextureRect(IntRect(587, 56, 173, 218));
+                else if (walkFrame == 4) PlayerSprite.setTextureRect(IntRect(771, 56, 173, 218));
             }
         }
-        if (Keyboard::isKeyPressed(Keyboard::Right))
+    }
+
+    // RIGHT MOVEMENT
+    if (Keyboard::isKeyPressed(Keyboard::Right))
+    {
+        if (vacuumdir == 'A') vacuumdir = 'D';
+        facingRight = true;
+        player_x += speed;
+
+        // Only play walking animation if NOT using vacuum
+        if (!isVacuuming)
         {
-            if(vacuumdir == 'A') //will only change vacuum direction if it is opposite
-                vacuumdir = 'D';
-                
-            facingRight = true;   // now we are facing right
-            player_x += speed;
-            // RIGHT FACING (FLIPPED) LOGIC
-            // Standard flip: X becomes (X + Width), Width becomes negative (-Width)
             if (selectedPlayer == 1) {
-                if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(233, 39, -208, 261)); /// added width in X positon and made width negative
+                if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(233, 39, -208, 261));
                 else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(467, 39, -208, 261));
                 else if (walkFrame == 2) PlayerSprite.setTextureRect(IntRect(688, 39, -208, 261));
                 else if (walkFrame == 3) PlayerSprite.setTextureRect(IntRect(909, 39, -208, 261));
                 else if (walkFrame == 4) PlayerSprite.setTextureRect(IntRect(1130, 39, -208, 261));
-       
             } else {
-              if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(196, 56,-173, 218)); /// added width in X positon and made width negative
-                else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(392, 56,-173, 218));
-                else if (walkFrame == 2) PlayerSprite.setTextureRect(IntRect(576, 56,-173, 218));
-                else if (walkFrame == 3) PlayerSprite.setTextureRect(IntRect(760, 56,-173, 218));
-                else if (walkFrame == 4) PlayerSprite.setTextureRect(IntRect(944, 56,-173, 218));
+                if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(196, 56, -173, 218));
+                else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(392, 56, -173, 218));
+                else if (walkFrame == 2) PlayerSprite.setTextureRect(IntRect(576, 56, -173, 218));
+                else if (walkFrame == 3) PlayerSprite.setTextureRect(IntRect(760, 56, -173, 218));
+                else if (walkFrame == 4) PlayerSprite.setTextureRect(IntRect(944, 56, -173, 218));
             }
         }
-        if(Keyboard :: isKeyPressed(Keyboard::Down)&& onGround && (player_y + PlayerHeight < 10 * cell_size)){  //last condition checks if the player is NOT on lowest row (player_Y + PlayerHeight means that the bottom of the player is being checked against the bottom most row instead of its any othe part )
-            player_y += cell_size; //moves one total cell size down
-            onGround = false;       //is NOT on ground for that frame because its in air AND moving down
-            velocityY = 0;          //vertical velocity should be zero for that while
-        }
-        // IDLE: no left/right key pressed
-        if (!Keyboard::isKeyPressed(Keyboard::Left) &&
-            !Keyboard::isKeyPressed(Keyboard::Right))
+    }
+
+    //  DOWN MOVEMENT
+    if (Keyboard::isKeyPressed(Keyboard::Down) && onGround && (player_y + PlayerHeight < 10 * cell_size)) {
+        player_y += cell_size;
+        onGround = false;
+        velocityY = 0;
+    }
+
+    // IDLE ANIMATION
+    if (!Keyboard::isKeyPressed(Keyboard::Left) && !Keyboard::isKeyPressed(Keyboard::Right))
+    {
+        walkFrame = 0;
+        // Only set Idle frame if NOT using vacuum
+        if (!isVacuuming)
         {
-            walkFrame = 0;  // reset animation frame when idle
-
             if (selectedPlayer == 1) {
-                if (facingRight) {
-                    // idle facing right
-                    PlayerSprite.setTextureRect(IntRect(233, 39, -208, 261));
-                } else {
-                    // idle facing left
-                    PlayerSprite.setTextureRect(IntRect(25, 39, 208, 261));
-                }
+                if (facingRight) PlayerSprite.setTextureRect(IntRect(233, 39, -208, 261));
+                else PlayerSprite.setTextureRect(IntRect(25, 39, 208, 261));
             } else {
-                if (facingRight) {
-                    // player 2 idle right
-                    PlayerSprite.setTextureRect(IntRect(196, 56, -173, 218));
-                } else {
-                    // player 2 idle left
-                    PlayerSprite.setTextureRect(IntRect(23, 56, 173, 218));
-                }
+                if (facingRight) PlayerSprite.setTextureRect(IntRect(196, 56, -173, 218));
+                else PlayerSprite.setTextureRect(IntRect(23, 56, 173, 218));
             }
         }
+    }
 
+    //  VACUUM ANIMATION 
+    if (isVacuuming)
+    {
+        // PLAYER 1 VACUUM
+        if (selectedPlayer == 1)
+        {
+            
+            if      (vacuumdir == 'W') PlayerSprite.setTextureRect(IntRect(229, 17, 104, 226)); // UP
+            else if (vacuumdir == 'S') PlayerSprite.setTextureRect(IntRect(356, 11, 85, 206)); // DOWN
+            else if (vacuumdir == 'A') PlayerSprite.setTextureRect(IntRect(23, 231, 226, 122)); // LEFT
+            else if (vacuumdir == 'D') PlayerSprite.setTextureRect(IntRect(407, 231, 230, 133)); // RIGHT 
+        }
+        // PLAYER 2 VACUUM
+        else 
+        {
+            if      (vacuumdir == 'W') PlayerSprite.setTextureRect(IntRect(96, 20, 144, 297)); // UP
+            else if (vacuumdir == 'S') PlayerSprite.setTextureRect(IntRect(275, 15, 107, 274)); // DOWN
+            else if (vacuumdir == 'A') PlayerSprite.setTextureRect(IntRect(7, 338, 218, 167)); // LEFT
+            else if (vacuumdir == 'D') PlayerSprite.setTextureRect(IntRect(240, 338, 218, 166)); // RIGHT
+        }
+    }
 }
 
 bool checkCollision(float player_x, float player_y, int player_width, int player_height, float enemy_x, float enemy_y, int enemy_width, int enemy_height, int &playerHealth){
@@ -474,6 +528,60 @@ void vacuumRangeCheck(float player_x, float player_y, char vacuumdir, float enem
                 if (inRange) {
                         enemy_capture_state[i] = 1; //being sucked
                 }
+            }
+        }
+    }
+}
+void adjustVacuumSprites(Sprite& sprite, char vacuumdir, int selectedPlayer)
+{
+    // We will  only apply offsets if the player is holding Space (Vacuuming)
+    if (Keyboard::isKeyPressed(Keyboard::Space))
+    {
+        // PLAYER 1 
+        if (selectedPlayer == 1)
+        {
+            if (vacuumdir == 'D') 
+            {
+                
+                sprite.move(0, 0); 
+            }
+            else if (vacuumdir == 'S') 
+            {
+                
+                sprite.move(0, 0); 
+            }
+            else if (vacuumdir == 'A') 
+            {
+                //Needs significant shift for P1
+                sprite.move(-110, 0);
+            }
+            else if (vacuumdir == 'W')
+            {
+                // Needs shift up for P1
+                sprite.move(0, -90);
+            }
+        }
+        
+        else 
+        {
+            // Player 2 
+            if (vacuumdir == 'D') 
+            {
+                sprite.move(0, 0); 
+            }
+            else if (vacuumdir == 'S') 
+            {
+                sprite.move(0, 0); 
+            }
+            else if (vacuumdir == 'A') 
+            {
+                // Left shift for Player 2
+                sprite.move(-60, 0); 
+            }
+            else if (vacuumdir == 'W')
+            {
+                // Up shift for Player 2
+                sprite.move(0, -70); 
             }
         }
     }
@@ -639,6 +747,13 @@ int main()
   
     Texture Player2Texture;
     Sprite Player2Sprite;
+	//VACUUM TEXTURES
+    Texture Player1VacTex;
+    Texture Player2VacTex;
+    
+
+    Player1VacTex.loadFromFile("Data/player1_vacuum.png"); 
+    Player2VacTex.loadFromFile("Data/player2_vacuum.png");
 
     Player1Texture.loadFromFile("Data/player1.png");
     Player1Sprite.setTexture(Player1Texture);
@@ -754,7 +869,7 @@ int main()
         else if (state == 1)
         {
              window.draw(PlayermenuSprite); 
-             // check if timer is greater  10 (represent frames) and weather enter  key is pressed
+            
              // DISPLAYING CHARACTERS IN MENu
              menutext1Sprite.setPosition(300, 200);
              window.draw(menutext1Sprite);
@@ -816,8 +931,8 @@ int main()
             vacuumRangeCheck(player_x, player_y, vacuumdir, skel_x, skel_y, skel_capture_state, NUM_SKELETONS , enemies_in_vacuum , levelstorecap); //for skeleton
             vacuumRangeCheck(player_x, player_y, vacuumdir, ghost_x, ghost_y, ghost_capture_state, NUM_GHOSTS , enemies_in_vacuum  , levelstorecap); //for ghost
             
-            movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerTexture , PlayerHeight,selectedPlayer , walkFrame , facingRight, vacuumdir); //player movement function call
-            
+          movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerHeight, selectedPlayer, 
+         walkFrame, facingRight, vacuumdir, Player1Texture, Player2Texture, Player1VacTex, Player2VacTex);
             window.clear();
             display_level(window, lvl, bgTex, bgSprite, blockTexture, blockSprite, height, width, cell_size);
             int Pwidth_scaled  = PlayerTexture.getSize().x * 0.40; //setting width according to player size 
@@ -825,6 +940,8 @@ int main()
             player_gravity(lvl,offset_y,velocityY,onGround,gravity,terminal_Velocity, player_x, player_y, cell_size, PlayerHeight, PlayerWidth);
             screenborder(player_x , player_y , PlayerWidth , velocityY , screen_x); //function for setting borders of the window
             PlayerSprite.setPosition(player_x, player_y);
+            // Apply the visual offset function
+          adjustVacuumSprites(PlayerSprite, vacuumdir, selectedPlayer);
             window.draw(PlayerSprite);
         
             // update and draw skeletons
