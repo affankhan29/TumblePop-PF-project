@@ -83,8 +83,7 @@ void spawn_enemy(float& x, float& y, Sprite& sprite, char** lvl, int height, int
         }
     }
 }
-
-// universal movement function
+//universal enemy movement
 void update_enemy_logic(float& x, float& y, float& speed, Sprite& sprite, char** lvl, int width, int cell_size, int enemy_width, int enemy_height)
 {
     x += speed;
@@ -189,7 +188,7 @@ void screenborder(float &player_x , float &player_y , int &playerwidth , float &
 	if(player_x + playerwidth > screenx) //right border
 		player_x = screen_x - playerwidth;
 }
-void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool &isJumping ,float &player_x , float &player_y , Sprite &PlayerSprite, float &speed , const int &cell_size , Texture &PlayerTexture , int &PlayerHeight, int selectedPlayer , int &walkFrame , bool &facingRight){
+void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool &isJumping ,float &player_x , float &player_y , Sprite &PlayerSprite, float &speed , const int &cell_size , Texture &PlayerTexture , int &PlayerHeight, int selectedPlayer , int &walkFrame , bool &facingRight , char &vacuumdir){
 	if(Keyboard::isKeyPressed(Keyboard::Up)){
 			if(onGround){
 				velocityY = jumpStrength;
@@ -198,10 +197,12 @@ void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool
 			}
 		}
 	
-		 if (Keyboard::isKeyPressed(Keyboard::Left))
+		if (Keyboard::isKeyPressed(Keyboard::Left))
         {
-			  facingRight = false;   // now we are facing right
-            player_x -= speed;
+			if(vacuumdir == 'D') //will only change vacuum direction if it is opposite	
+				vacuumdir = 'A';
+			facingRight = false;   // now we are facing right
+			player_x -= speed;
             // LEFT FACING LOGIC
             if (selectedPlayer == 1) {
                 // Player 1 Sprite Sheet coordinates animation frames 
@@ -221,6 +222,8 @@ void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool
         }
         if (Keyboard::isKeyPressed(Keyboard::Right))
         {
+			if(vacuumdir == 'A') //will only change vacuum direction if it is opposite
+				vacuumdir = 'D';
 			facingRight = true;   // now we are facing right
             player_x += speed;
             // RIGHT FACING (FLIPPED) LOGIC
@@ -269,15 +272,69 @@ void movement(bool &onGround , float &velocityY ,const float &jumpStrength ,bool
 				}
 			}
 		}
-
 }
-bool checkCollision(float player_x, float player_y, int player_width, int player_height, float enemy_x, float enemy_y, int enemy_width, int enemy_height){
-    return (player_x < enemy_x + enemy_width && //checks for overlap from player's left side
+bool checkCollision(float player_x, float player_y, int player_width, int player_height, float enemy_x, float enemy_y, int enemy_width, int enemy_height , int &playerHealth){
+    if(player_x < enemy_x + enemy_width && //checks for overlap from player's left side
 			player_x + player_width> enemy_x && //''  '' '' '' right ''
-            player_y < enemy_y + enemy_height&& // '' ''' '' top ''
-            player_y + player_height  > enemy_y); //'' ''' '' bottom ''
+            player_y  < enemy_y + enemy_height&& // '' ''' '' top ''
+            player_y + player_height  > enemy_y) //'' ''' '' bottom ''
+			{
+				playerHealth--;
+				return true;
+			} 
+	else
+		return false;
 }
+void vacuumMovement(char &vacuumdir){
+	if(Keyboard::isKeyPressed(Keyboard::W)) vacuumdir = 'W';
+	if(Keyboard::isKeyPressed(Keyboard::D)) vacuumdir = 'D';
+	if(Keyboard::isKeyPressed(Keyboard::S)) vacuumdir = 'S';
+	if(Keyboard::isKeyPressed(Keyboard::A)) vacuumdir = 'A';
 
+}
+void vacuumRangeCheck(float player_x, float player_y, char vacuumdir, float enemy_x[], float enemy_y[], int enemy_state[], int num_enemies , int enemy_in_vacuum, int levelstorecap) //this is to modify enemy_state[i] to use them for suction later
+{
+    if (Keyboard::isKeyPressed(Keyboard::Space)) 
+    {
+        if (enemy_in_vacuum >= levelstorecap) return; //level cap for storing enemies (hence vacuum wont store any further than that)
+		for (int i = 0; i < num_enemies; i++) //checks for all enemies
+        {
+            if (enemy_state[i] == 0)  //means walking
+            {
+                bool inRange = false;
+
+                if (vacuumdir == 'D') { // right
+                    if (enemy_x[i] > player_x && enemy_x[i] < player_x + 150 && abs(player_y - enemy_y[i]) < 80) {
+                        inRange = true;
+                    }
+                } 
+                else if (vacuumdir == 'A') { // left
+                    if (enemy_x[i] > player_x - 150 && enemy_x[i] < player_x && abs(player_y - enemy_y[i]) < 80) {
+                        inRange = true;
+                    }
+                }
+                else if (vacuumdir == 'W') { // up
+                    //  y must be above player (player_y - 150 to player_y)
+                    //  x must be close (abs(player_x - enemy_x[i]) < 80)
+                    if ( enemy_y[i] > player_y - 150 && enemy_y[i] < player_y && abs(player_x - enemy_x[i]) < 80 ) {
+                        inRange = true;
+                    }
+                }
+                else if (vacuumdir == 'S') { // down
+                     //  y must be below player (player_y to player_y + 150)
+                     //  x must be close
+                    if ( enemy_y[i] > player_y && enemy_y[i] < player_y + 150 && abs(player_x - enemy_x[i]) < 80 ) {
+                        inRange = true;
+                    }
+                }
+
+                if (inRange) {
+						enemy_state[i] = 1; //being sucked
+                }
+            }
+        }
+    }
+}
 int main()
 {
 
@@ -297,7 +354,8 @@ int main()
 	 int enemyFrame = 0;  // 0..8 for ghost animation
      int selectedPlayer = 1; // 1 = Player 1, 2 = Player 2
 	 bool facingRight = true; // to track which way the player is facing
-	//level and background textures and sprites
+	 int playerHealth = 3;
+	 //level and background textures and sprites
 	Texture bgstartTex;
 	Sprite bgstartSprite;
 	Texture playTex;
@@ -403,7 +461,7 @@ int main()
     float skel_x[NUM_SKELETONS];
     float skel_y[NUM_SKELETONS];
     float skel_speed[NUM_SKELETONS];
-    Sprite skeletons[NUM_SKELETONS]; 
+	Sprite skeletons[NUM_SKELETONS]; 
     int skel_width = 32 * 2.5; //32
     int skel_height = 38 * 2.5;//38
     Texture skeletonTexture;
@@ -414,7 +472,7 @@ int main()
     float ghost_x[NUM_GHOSTS];
     float ghost_y[NUM_GHOSTS];
     float ghost_speed[NUM_GHOSTS];
-    Sprite ghosts[NUM_GHOSTS];
+	Sprite ghosts[NUM_GHOSTS];
     int ghost_width = 35 * 2.5; 
     int ghost_height = 29 * 2.5; 
     Texture ghostTexture;
@@ -437,7 +495,14 @@ int main()
 	Player2Sprite.setTexture(Player2Texture);
 	Player2Sprite.setTextureRect(IntRect(23,56,173, 218));
 
-
+	//vacuum data
+	char vacuumdir = 'D' ; //d for right , w for up , and so on , d is default cause facing right
+	float suctionspeed = 6.0f;
+	int enemies_in_vacuum = 0;
+	const int levelstorecap = 3; //initally set for level 1
+	int skel_state[NUM_SKELETONS] = {0}; //0 for walking , 1 for being sucked , 2 for completely sucked (i.e , not there anymore) , default is 0(walking)
+	int ghost_state[NUM_GHOSTS] = {0};
+	int vacuumStorage[levelstorecap]; //currently for level 1 only
 	//creating level array
 lvl = new char* [height];
 for (int i = 0; i < height; i++)
@@ -473,6 +538,7 @@ for (int i = 0; i < height; i++)
         
         // FIXED CALL: Passing 'skel_height'
         spawn_enemy(skel_x[i], skel_y[i], skeletons[i], lvl, height, width, cell_size, skel_height);
+		skel_state[i] = 0;
     }
 
     // GHOST SPAWN LOOP
@@ -496,6 +562,7 @@ for (int i = 0; i < height; i++)
 
         // Passing 'ghost_height'
         spawn_enemy(ghost_x[i], ghost_y[i], ghosts[i], lvl, height, width, cell_size, ghost_height);
+		ghost_state[i] = 0;
     }
 
 
@@ -598,48 +665,134 @@ for (int i = 0; i < height; i++)
 				enemyFrame = (enemyFrame + 1) % 8;   // 0,1,2,3 .... ,8 loop
 				timer = 0;
 			}
-		movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerTexture , PlayerHeight,selectedPlayer , walkFrame , facingRight); //player movement function call
+		vacuumMovement(vacuumdir);
+		vacuumRangeCheck(player_x, player_y, vacuumdir, skel_x, skel_y, skel_state, NUM_SKELETONS , enemies_in_vacuum , levelstorecap); //for skeleton
+		vacuumRangeCheck(player_x, player_y, vacuumdir, ghost_x, ghost_y, ghost_state, NUM_GHOSTS , enemies_in_vacuum  , levelstorecap); //for ghost
+		movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerTexture , PlayerHeight,selectedPlayer , walkFrame , facingRight , vacuumdir); //player movement function call
 		window.clear();
-
 		display_level(window, lvl, bgTex, bgSprite, blockTexture, blockSprite, height, width, cell_size);
-		int Pwidth_scaled  = PlayerTexture.getSize().x * 3; //setting width according to player size , i.e multiplying by 3
-		int Pheight_scaled = PlayerTexture.getSize().y * 3;
 		player_gravity(lvl,offset_y,velocityY,onGround,gravity,terminal_Velocity, player_x, player_y, cell_size, PlayerHeight, PlayerWidth);
 		screenborder(player_x , player_y , PlayerWidth , velocityY , screen_x); //function for setting borders of the window
 		PlayerSprite.setPosition(player_x, player_y);
 		window.draw(PlayerSprite);
         
-		 // update and draw skeletons
-        for (int i = 0; i < NUM_SKELETONS; i++)
-        {
-            update_enemy_logic(skel_x[i], skel_y[i], skel_speed[i], skeletons[i], lvl, width, cell_size, skel_width, skel_height);
-			animate_skeleton(skeletons[i], enemyFrame);
-            if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight,skel_x[i], skel_y[i], skel_width, skel_height)){
-        		//if collision occurs , resets player's position
-				player_x = 50; 
-				player_y = 538;
-       		}
-			window.draw(skeletons[i]);
-        }
 
-        // update and draw ghosts
-        for (int i = 0; i < NUM_GHOSTS; i++)
-        {
-            update_enemy_logic(ghost_x[i], ghost_y[i], ghost_speed[i], ghosts[i], lvl, width, cell_size, ghost_width, ghost_height);
-			animate_ghost(ghosts[i], enemyFrame);
-            if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight,ghost_x[i], ghost_y[i], ghost_width, ghost_height)){
-        		//if collision occurs , resets player's position
-				player_x = 50; 
-				player_y = 538;
-       		}
-			window.draw(ghosts[i]);
-        }
-		// enemy collision check 
+
+		// update , draw , and check suction for skeletons
+		for (int i = 0; i < NUM_SKELETONS; i++)
+		{
+			// process everyone who is not captured
+			if (skel_state[i] != 2) 
+			{
+				// checking if walking
+				if (skel_state[i] == 0) {
+					update_enemy_logic(skel_x[i], skel_y[i], skel_speed[i], skeletons[i], lvl, width, cell_size, skel_width, skel_height);
+				}
+				//  if not , then start sucking
+				else if (skel_state[i] == 1) {
+					/*the movement logic below 
+					is temporary  and shall be replaced by animation later on*/
+					//Move X-axis
+					if (skel_x[i] < player_x) skel_x[i] += suctionspeed;
+					else skel_x[i] -= suctionspeed;
+
+				    //move Y-axis
+					if (skel_y[i] < player_y) skel_y[i] += suctionspeed;
+					else skel_y[i] -= suctionspeed;
+					
+					//update the location  
+					skeletons[i].setPosition(skel_x[i], skel_y[i]);
+
+					// storing in the inventory
+					if (abs(player_x - skel_x[i]) < 10 && abs(player_y - skel_y[i]) < 10) 
+					{
+						if (enemies_in_vacuum < 3) {
+							skel_state[i] = 2; // capture them
+							enemies_in_vacuum++; //adds to space
+						}
+						else { //not captured , walk..
+							skel_state[i] = 0; 
+						}
+					}
+				}
+
+				animate_skeleton(skeletons[i], enemyFrame);
+				//player only dies if the enemy is not being sucked
+				if (skel_state[i] == 0 && checkCollision(player_x, player_y, PlayerWidth, PlayerHeight, skel_x[i], skel_y[i], skel_width, skel_height , playerHealth)){
+					player_x = 50; 
+					player_y = 538;
+				}
+				if(playerHealth == 0) state = 3;
+				window.draw(skeletons[i]);
+			}
+		}
+
+		// update , draw  , and check suction for ghosts
+		for (int i = 0; i < NUM_GHOSTS; i++)
+		{
+			// process everyone who is not captured
+			if (ghost_state[i] != 2) 
+			{
+				// checking if walking
+				if (ghost_state[i] == 0) {
+					update_enemy_logic(ghost_x[i], ghost_y[i], ghost_speed[i], ghosts[i], 
+									lvl, width, cell_size, ghost_width, ghost_height);
+				}
+				//  if not , then start sucking
+				else if (ghost_state[i] == 1) {
+					/*the movement logic below 
+					is temporary  and shall be replaced by animation later on*/
+					//Move X-axis
+					if (ghost_x[i] < player_x) ghost_x[i] += suctionspeed;
+					else ghost_x[i] -= suctionspeed;
+
+					//move Y-axis
+					if (ghost_y[i] < player_y) ghost_y[i] += suctionspeed;
+					else ghost_y[i] -= suctionspeed;
+					
+					//update the location
+					ghosts[i].setPosition(ghost_x[i], ghost_y[i]);
+
+					// storing in the inventory
+					if (abs(player_x - ghost_x[i]) < 10 && abs(player_y - ghost_y[i]) < 10) 
+					{
+						if (enemies_in_vacuum < 3) {
+							ghost_state[i] = 2; // capture them
+							enemies_in_vacuum++; // adds to space
+						}
+						else {
+							// not captured , walk..
+							ghost_state[i] = 0; 
+						} 
+					}
+				}
+
+				animate_ghost(ghosts[i], enemyFrame);
+
+				// player only dies , if not being sucked
+				if (ghost_state[i] == 0 && checkCollision(player_x, player_y, PlayerWidth, PlayerHeight,
+															ghost_x[i], ghost_y[i], ghost_width, ghost_height , playerHealth)){
+					player_x = 50; 
+					player_y = 538;
+				}
+				if(playerHealth == 0) state   =3;
+				
+				window.draw(ghosts[i]);
+			}
+		}
+		
 
 
 		window.display();
 	}
-		}
+	else if(state == 3) //gameover state
+	{
+		window.close();
+
+	}		
+
+	}
+
 	//stopping music and deleting level array
 	lvlMusic.stop();
 	for (int i = 0; i < height; i++)
@@ -650,4 +803,3 @@ for (int i = 0; i < height; i++)
 
 	return 0;
 }
-
