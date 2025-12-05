@@ -11,6 +11,46 @@ using namespace std;
 int screen_x = 1136;
 int screen_y = 896;
 
+
+///////////////////////////////////////////////////////////////////////////
+/////                added death animation function                 ///////
+/////                                                              ///////
+//////////////////////////////////////////////////////////////////////////  
+
+
+void animate_death(Sprite &playerDeath, int frame, int selectedPlayer)
+{
+    // PLAYER 1 DEATH FRAMES
+    if (selectedPlayer == 1)
+    {
+        if (frame == 0)      playerDeath.setTextureRect(IntRect(32, 8, 112, 156)); 
+        else if (frame == 1) playerDeath.setTextureRect(IntRect(199, 8, 115, 149));
+        else if (frame == 2) playerDeath.setTextureRect(IntRect(373, 8, 111, 146));
+        else if (frame == 3) playerDeath.setTextureRect(IntRect(369, 10, 111, 146));
+        else if (frame == 4) playerDeath.setTextureRect(IntRect(553, 8, 101, 150));
+        else if (frame == 5) playerDeath.setTextureRect(IntRect(723, 8, 101, 150));
+        else if (frame == 6) playerDeath.setTextureRect(IntRect(894, 8, 100, 150));
+        else if (frame == 7) playerDeath.setTextureRect(IntRect(1074, 8, 76, 150));
+        else if (frame == 8) playerDeath.setTextureRect(IntRect(1196, 8, 24, 150));
+    }
+    // PLAYER 2 DEATH FRAMES
+    else if (selectedPlayer == 2)
+    {
+        // CHANGE THESE NUMBERS TO MATCH YOUR PLAYER 2 SPRITE SHEET
+        if (frame == 0)      playerDeath.setTextureRect(IntRect(28, 10, 112, 157)); 
+        else if (frame == 1) playerDeath.setTextureRect(IntRect(195, 0, 50, 50));
+        else if (frame == 2) playerDeath.setTextureRect(IntRect(100, 10, 115, 150));
+        else if (frame == 3) playerDeath.setTextureRect(IntRect(369, 10, 111, 146));
+        else if (frame == 4) playerDeath.setTextureRect(IntRect(549, 10, 101, 150));
+        else if (frame == 5) playerDeath.setTextureRect(IntRect(719, 10, 101, 150));
+        else if (frame == 6) playerDeath.setTextureRect(IntRect(890, 10, 100, 150));
+        else if (frame == 7) playerDeath.setTextureRect(IntRect(1070, 10, 76, 150));
+        else if (frame == 8) playerDeath.setTextureRect(IntRect(1192, 10, 24, 150));
+    }
+}
+
+
+
 void animate_ghost(Sprite &ghost, int frame)
 {
     // animating ghost frames
@@ -75,7 +115,7 @@ void skele_platform_switch(
     // and empty air between (R+1) so skeleton can fall through.
  
     bool canGoDown = false;
-    if (feet_row + jumpRows < height)
+    if (feet_row + jumpRows < height&& (feet_row + jumpRows)!=10)
     {
         if (lvl[feet_row + jumpRows][col] == '#' &&   // platform below exists
             lvl[feet_row + 1][col] != '#')            // space under feet is empty
@@ -468,20 +508,24 @@ void movement(
         }
     }
 }
+  
+///////////////////////////////////////////////////////////////////////////
+/////                updated check collison                         ///////
+/////                                                              ///////
+//////////////////////////////////////////////////////////////////////////     
 
-bool checkCollision(float player_x, float player_y, int player_width, int player_height, float enemy_x, float enemy_y, int enemy_width, int enemy_height, int &playerHealth){
+bool checkCollision(float player_x, float player_y, int player_width, int player_height, float enemy_x, float enemy_y, int enemy_width, int enemy_height){
     if(player_x < enemy_x + enemy_width && //checks for overlap from player's left side
             player_x + player_width> enemy_x && //''  '' '' '' right ''
             player_y < enemy_y + enemy_height&& // '' ''' '' top ''
             player_y + player_height  > enemy_y) //'' ''' '' bottom ''
             {
-                playerHealth--;
+                // playerHealth--;  <<<<< REMOVED  Health is now decreased in main loop after animation
                 return true;
             } 
     else
         return false;
 }
-
 void vacuumMovement(char &vacuumdir){
     if(Keyboard::isKeyPressed(Keyboard::W)) vacuumdir = 'W';
     if(Keyboard::isKeyPressed(Keyboard::D)) vacuumdir = 'D';
@@ -688,6 +732,10 @@ int main()
 
     int PlayerHeight;
     int PlayerWidth ;
+    // Death State Variables
+    bool isDying = false;
+    int deathTimer = 0;   // to count how long the animation plays
+    int deathFrame = 0;   // to track the animation frame
    
     bool up_button = false;
 
@@ -721,7 +769,7 @@ int main()
     Texture skeletonTexture;
     skeletonTexture.loadFromFile("Data/skeleton.png");
     
-    // User's Jumping State
+    // users Jumping State
     int   skelPlatformState[NUM_SKELETONS] = {0};   // 0=normal 1=prep 2=jumping up 3=dropping down
     int   skelTimer[NUM_SKELETONS] = {0};   // counts frames inside state
     float skelStartY[NUM_SKELETONS];        // where jump started
@@ -750,10 +798,23 @@ int main()
 	//VACUUM TEXTURES
     Texture Player1VacTex;
     Texture Player2VacTex;
+    //playerdeath
+    Texture Player1DeathTex;
+    Sprite  Player1DeathSprite;
+    Texture Player2DeathTex;
+    Sprite  Player2DeathSprite;
     
 
     Player1VacTex.loadFromFile("Data/player1_vacuum.png"); 
     Player2VacTex.loadFromFile("Data/player2_vacuum.png");
+    
+    Player1DeathTex.loadFromFile("Data/player1death.png"); 
+    Player1DeathSprite.setTexture(Player1DeathTex);
+    Player1DeathSprite.setScale(0.75,0.75);
+
+    Player2DeathTex.loadFromFile("Data/player2death.png"); 
+    Player2DeathSprite.setTexture(Player2DeathTex);
+    Player2DeathSprite.setScale(0.6,0.6);
 
     Player1Texture.loadFromFile("Data/player1.png");
     Player1Sprite.setTexture(Player1Texture);
@@ -916,208 +977,209 @@ int main()
             window.display();
         }
         
+
+
+///////////////////////////////////////////////////////////////////////////
+/////                updated gameplay state                         ///////
+/////                                                              ///////
+////////////////////////////////////////////////////////////////////////// 
+
+
         else if(state == 2) //gameplay state
         {
-         // advance animation frame every 10 game frames
-            timer++;
-            if (timer > 9)           //  this number controls  animation speed faster/slower
-            {
-                walkFrame = (walkFrame + 1) % 5;   // 0,1,2,3,4 loop
-                enemyFrame = (enemyFrame + 1) % 8;   // 0,1,2,3 .... ,8 loop
-                timer = 0;
-            }
-
-            vacuumMovement(vacuumdir);
-            vacuumRangeCheck(player_x, player_y, vacuumdir, skel_x, skel_y, skel_capture_state, NUM_SKELETONS , enemies_in_vacuum , levelstorecap); //for skeleton
-            vacuumRangeCheck(player_x, player_y, vacuumdir, ghost_x, ghost_y, ghost_capture_state, NUM_GHOSTS , enemies_in_vacuum  , levelstorecap); //for ghost
-            
-          movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerHeight, selectedPlayer, 
-         walkFrame, facingRight, vacuumdir, Player1Texture, Player2Texture, Player1VacTex, Player2VacTex);
             window.clear();
             display_level(window, lvl, bgTex, bgSprite, blockTexture, blockSprite, height, width, cell_size);
-            int Pwidth_scaled  = PlayerTexture.getSize().x * 0.40; //setting width according to player size 
-            int Pheight_scaled = PlayerTexture.getSize().y * 0.40;
-            player_gravity(lvl,offset_y,velocityY,onGround,gravity,terminal_Velocity, player_x, player_y, cell_size, PlayerHeight, PlayerWidth);
-            screenborder(player_x , player_y , PlayerWidth , velocityY , screen_x); //function for setting borders of the window
-            PlayerSprite.setPosition(player_x, player_y);
-            // Apply the visual offset function
-          adjustVacuumSprites(PlayerSprite, vacuumdir, selectedPlayer);
-            window.draw(PlayerSprite);
+
+            
+            // DEATH ANIMATION STATE
         
-            // update and draw skeletons
+            if (isDying)
+            {
+                deathTimer++;
+
+                // slow down animation (update sprite every 10 frames)
+                if (deathTimer % 10 == 0) {
+                    deathFrame++;
+                    if (deathFrame > 9)
+                     deathFrame = 9; // Stop at last frame
+                }
+
+                // draw death sprite at the position where player died
+               if (selectedPlayer == 1)
+                        {
+                            Player1DeathSprite.setPosition(player_x, player_y);
+                            animate_death(Player1DeathSprite, deathFrame, 1);
+                            window.draw(Player1DeathSprite);
+                        }
+                else
+                        {
+                            Player2DeathSprite.setPosition(player_x, player_y);
+                            animate_death(Player2DeathSprite, deathFrame, 2);
+                            window.draw(Player2DeathSprite);
+                        }
+                                    // wait for approx 2s before respawn
+                if (deathTimer > 120) 
+                {
+                    playerHealth--; // Decrease health  after animation
+                    
+                    if (playerHealth <= 0) {
+                       
+                        ////////////// state = 3; Game Over
+                        // FOR DEBUGGING: Restart game if health <= 0
+                        // (Prevent Infinite Loop)
+                        playerHealth = 3; 
+                        player_x = 50;
+                        player_y = 538;
+                        isDying = false;
+                        deathTimer = 0;
+                        deathFrame = 0;
+                        velocityY = 0; // Reset physics
+                    } else {
+                        // Respawn Logic
+                        player_x = 50;
+                        player_y = 538;
+                        isDying = false;
+                        deathTimer = 0;
+                        deathFrame = 0;
+                        velocityY = 0; // Reset physics
+                    }
+                }
+            }
+            //
+            // NORMAL GAMEPLAY STATE (Only runs if NOT dying)
+            // 
+            else 
+            {
+                //  TIMER
+                timer++;
+                if (timer > 9) {
+                    walkFrame = (walkFrame + 1) % 5;
+                    enemyFrame = (enemyFrame + 1) % 8;
+                    timer = 0;
+                }
+
+                // INPUT & PHYSICS
+                vacuumMovement(vacuumdir);
+                vacuumRangeCheck(player_x, player_y, vacuumdir, skel_x, skel_y, skel_capture_state, NUM_SKELETONS , enemies_in_vacuum , levelstorecap);
+                vacuumRangeCheck(player_x, player_y, vacuumdir, ghost_x, ghost_y, ghost_capture_state, NUM_GHOSTS , enemies_in_vacuum  , levelstorecap);
+                
+                movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerHeight, selectedPlayer, 
+                         walkFrame, facingRight, vacuumdir, Player1Texture, Player2Texture, Player1VacTex, Player2VacTex);
+
+                player_gravity(lvl,offset_y,velocityY,onGround,gravity,terminal_Velocity, player_x, player_y, cell_size, PlayerHeight, PlayerWidth);
+                screenborder(player_x , player_y , PlayerWidth , velocityY , screen_x); 
+                
+                PlayerSprite.setPosition(player_x, player_y);
+                adjustVacuumSprites(PlayerSprite, vacuumdir, selectedPlayer);
+                window.draw(PlayerSprite);
+            }
+
+            //
+            // ENEMY LOGIC Always draw enemies
+            // 
+            
+            // SKELETONS
             for (int i = 0; i < NUM_SKELETONS; i++)
             {
-                // process everyone who is not captured
                 if (skel_capture_state[i] != 2) 
                 {
-                    // checking if walking
-                    if (skel_capture_state[i] == 0) // Normal Behavior
-                    {
-                        // only move left/right when NOT jumping or prepping
-                        if (skelPlatformState[i] == 0)
-                        {
-                            update_enemy_logic(skel_x[i], skel_y[i], skel_speed[i],
-                                            skeletons[i], lvl, width, cell_size,
-                                            skel_width, skel_height);
-                        }
-
-                        // slow jump/drop behavior
-                        skele_platform_switch(
-                            i, skel_x[i], skel_y[i],
-                            skelPlatformState[i], skelTimer[i],
-                            skelStartY[i], skelTargetY[i],
-                            skeletons[i],
-                            lvl, height, cell_size, skel_height
-                        );
-
-                        // normal walking animation ONLY if not in prep pose
-                        // ONLY animate while walking on platform
+                    if (skel_capture_state[i] == 0) {
+                        // only move if player is not dying
+                        if (!isDying && skelPlatformState[i] == 0)
+                            update_enemy_logic(skel_x[i], skel_y[i], skel_speed[i], skeletons[i], lvl, width, cell_size, skel_width, skel_height);
+                        
+                        skele_platform_switch(i, skel_x[i], skel_y[i], skelPlatformState[i], skelTimer[i], skelStartY[i], skelTargetY[i], skeletons[i], lvl, height, cell_size, skel_height);
+                        
                         if (skelPlatformState[i] == 0) animate_skeleton(skeletons[i], enemyFrame);
                     }
-                    //  if not , then start sucking
-                    else if (skel_capture_state[i] == 1) // Being Sucked
-                    {
-                        /*the movement logic below 
-                        is temporary  and shall be replaced by animation later on*/
-                        //Move X-axis
-                        if (skel_x[i] < player_x) skel_x[i] += suctionspeed;
-                        else skel_x[i] -= suctionspeed;
-
-                        //move Y-axis
-                        if (skel_y[i] < player_y) skel_y[i] += suctionspeed;
-                        else skel_y[i] -= suctionspeed;
-                        
-                        //update the location  
-                        skeletons[i].setPosition(skel_x[i], skel_y[i]);
-
-                        // storing in the inventory
-                        if (abs(player_x - skel_x[i]) < 10 && abs(player_y - skel_y[i]) < 10) 
-                        {
+                    else if (skel_capture_state[i] == 1) {
+                         /// Vacuum logic 
+                         if (skel_x[i] < player_x) skel_x[i] += suctionspeed;
+                         else skel_x[i] -= suctionspeed;
+                         if (skel_y[i] < player_y) skel_y[i] += suctionspeed;
+                         else skel_y[i] -= suctionspeed;
+                         skeletons[i].setPosition(skel_x[i], skel_y[i]);
+                         
+                         if (abs(player_x - skel_x[i]) < 10 && abs(player_y - skel_y[i]) < 10) {
                             if (enemies_in_vacuum < 3) {
-                                skel_capture_state[i] = 2; // capture them
-                                enemies_in_vacuum++; //adds to space
-                            } else {
-                                //not captured , walk..
-                                skel_capture_state[i] = 0; 
-                            }
+                                skel_capture_state[i] = 2; 
+                                enemies_in_vacuum++; 
+                            } else { skel_capture_state[i] = 0; }
                         }
                         animate_skeleton(skeletons[i], enemyFrame);
                     }
 
-                    //player only dies if the enemy is not being sucked
-                    if (skel_capture_state[i] == 0 && checkCollision(player_x, player_y, PlayerWidth, PlayerHeight, skel_x[i], skel_y[i], skel_width, skel_height, playerHealth))
+                    // 
+                    // only check collision if player is not already dying
+                    if (!isDying && skel_capture_state[i] == 0) 
                     {
-                        player_x = 50;
-                        player_y = 538;
+                        // Check collision
+                        if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight, skel_x[i], skel_y[i], skel_width, skel_height))
+                        {
+                            isDying = true;  // Start death sequence
+                            deathTimer = 0;
+                            deathFrame = 0;
+                        }
                     }
-                    if(playerHealth <= 0) state = 3;
-                    
                     window.draw(skeletons[i]);
                 }
             }
 
-            // update , draw  , and check suction for ghosts
+            // --- GHOSTS ---
             for (int i = 0; i < NUM_GHOSTS; i++)
             {
-                // process everyone who is not captured
-                if (ghost_capture_state[i] != 2) // Captured
+                if (ghost_capture_state[i] != 2)
                 {
-                    // checking if walking
-                    if (ghost_capture_state[i] == 0) // Normal
-                    {
-                        //  PAUSE / STOP LOGIC
-                        // If ghostPause[i] > 0 that ghost is currently frozen.
-                        if (ghostPause[i] > 0)
-                        {
-                            ghostPause[i]--;   // count down one frame of pause
-
-                            // When the pause finishes (counter reaches 0),
-                            // we flip direction ONCE.
-                            if (ghostPause[i] == 0)
-                            {
-                                ghost_speed[i] = -ghost_speed[i];  // reverse movement direction
-
-                                // Update sprite facing to match new direction.
-                                // +speed means moving right 
-                                if (ghost_speed[i] > 0)
-                                    ghosts[i].setScale(-2.5, 2.5); // face right
-                                else
-                                    ghosts[i].setScale( 2.5, 2.5); // face left
+                    if (ghost_capture_state[i] == 0) {
+                        if (ghostPause[i] > 0) {
+                            ghostPause[i]--;
+                            if (ghostPause[i] == 0) {
+                                ghost_speed[i] = -ghost_speed[i];
+                                if (ghost_speed[i] > 0) ghosts[i].setScale(-2.5, 2.5);
+                                else ghosts[i].setScale( 2.5, 2.5);
                             }
+                        } else {
+                            if (rand() % 300 == 0) ghostPause[i] = 120;
+                            else if (!isDying) // Only move if not dying
+                                update_enemy_logic(ghost_x[i], ghost_y[i], ghost_speed[i], ghosts[i], lvl, width, cell_size, ghost_width, ghost_height);
                         }
-                        // If not paused ghost moves normally
-                        else
-                        {
-                            // Random chance to start a pause.
-                            // means  1 in 300 frames (about every 5 sec at 60fps).
-                            if (rand() % 300 == 0)
-                            {
-                                ghostPause[i] = 120;  // freeze for 120 frames ( 2 seconds)
-                            }
-                            else
-                            {
-                                // Normal patrolling movement 
-                                update_enemy_logic(ghost_x[i], ghost_y[i], ghost_speed[i],
-                                    ghosts[i], lvl, width, cell_size, ghost_width, ghost_height);
-                            }
-                        }
-                        
-                        if (ghost_speed[i] >= 0)
-                            ghosts[i].setPosition(ghost_x[i] + ghost_width, ghost_y[i]);
-                        else
-                            ghosts[i].setPosition(ghost_x[i], ghost_y[i]);
+                        if (ghost_speed[i] >= 0) ghosts[i].setPosition(ghost_x[i] + ghost_width, ghost_y[i]);
+                        else ghosts[i].setPosition(ghost_x[i], ghost_y[i]);
                     }
-                    //  if not , then start sucking
-                    else if (ghost_capture_state[i] == 1) // Being Sucked
-                    {
-                        /*the movement logic below 
-                        is temporary  and shall be replaced by animation later on*/
-                        //Move X-axis
+                    else if (ghost_capture_state[i] == 1) {
                         if (ghost_x[i] < player_x) ghost_x[i] += suctionspeed;
                         else ghost_x[i] -= suctionspeed;
-
-                        //move Y-axis
                         if (ghost_y[i] < player_y) ghost_y[i] += suctionspeed;
                         else ghost_y[i] -= suctionspeed;
-                        
-                        //update the location
                         ghosts[i].setPosition(ghost_x[i], ghost_y[i]);
-
-                        // storing in the inventory
-                        if (abs(player_x - ghost_x[i]) < 10 && abs(player_y - ghost_y[i]) < 10) 
-                        {
-                            if (enemies_in_vacuum < 3) {
-                                ghost_capture_state[i] = 2; // capture them
-                                enemies_in_vacuum++; // adds to space
-                            } else {
-                                // not captured , walk..
-                                ghost_capture_state[i] = 0; 
-                            } 
+                        if (abs(player_x - ghost_x[i]) < 10 && abs(player_y - ghost_y[i]) < 10) {
+                            if (enemies_in_vacuum < 3) { ghost_capture_state[i] = 2; enemies_in_vacuum++; } 
+                            else { ghost_capture_state[i] = 0; } 
                         }
                     }
 
-                    // ANIMATION
                     animate_ghost(ghosts[i], enemyFrame);
 
-                    //COLLISION WITH PLAYER
-                    // player only dies , if not being sucked
-                    // If ghost hitbox overlaps player hitbox, reset player.
-                    if (ghost_capture_state[i] == 0 && checkCollision(player_x, player_y, PlayerWidth, PlayerHeight, ghost_x[i], ghost_y[i], ghost_width, ghost_height, playerHealth))
+                    
+                    if (!isDying && ghost_capture_state[i] == 0)
                     {
-                        player_x = 50;   // respawn X
-                        player_y = 538;  // respawn Y
+                    
+                        if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight, ghost_x[i], ghost_y[i], ghost_width, ghost_height))
+                        {
+                            isDying = true; // Start death sequence
+                            deathTimer = 0;
+                            deathFrame = 0;
+                        }
                     }
-                    if(playerHealth <= 0) state = 3;
-
                     window.draw(ghosts[i]);
                 }
             }
             window.display();
         }
-        else if(state == 3) //gameover state
-        {
-            window.close();
-        }
+        // else if(state == 3) //gameover state
+        // {
+        //     window.close();
+        // }
     }
     
     //stopping music and deleting level array
