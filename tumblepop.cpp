@@ -246,7 +246,7 @@ void spawn_enemy(float& x, float& y, Sprite& sprite, char** lvl, int height, int
         {
             x = c * cell_size;
             
-            // FIX: Calculate Y based on height so feet touch the floor.
+            // calculating Y based on height so feet touch the floor.
             // (r + 1) * cell_size is the floor line.
             // We subtract height to find the top position.
             // We add +10 to push the feet slightly INTO the floor block for reliable collision.
@@ -387,20 +387,13 @@ void movement(
             PlayerSprite.setTexture(P2Vac);
         PlayerSprite.setScale(0.56, 0.56);
           } 
+      
     } 
     else {
         if (selectedPlayer == 1) PlayerSprite.setTexture(P1Norm);
         else PlayerSprite.setTexture(P2Norm);
         PlayerSprite.setScale(0.40, 0.40);
     }
-
-    // tracking vaccum direction
-    if (Keyboard::isKeyPressed(Keyboard::W)) vacuumdir = 'W';
-    if (Keyboard::isKeyPressed(Keyboard::S)) vacuumdir = 'S';
-    if (Keyboard::isKeyPressed(Keyboard::A)) vacuumdir = 'A';
-    if (Keyboard::isKeyPressed(Keyboard::D)) vacuumdir = 'D';
-
-
     // JUMPING
     if (Keyboard::isKeyPressed(Keyboard::Up)) {
         if (onGround) {
@@ -413,13 +406,14 @@ void movement(
     // LEFT MOVEMENT
     if (Keyboard::isKeyPressed(Keyboard::Left))
     {
-        if (vacuumdir == 'D') vacuumdir = 'A'; 
+        vacuumdir = 'A'; //so that keeping track is ezier during gameplay
         facingRight = false;
         player_x -= speed;
 
         // Only play walking animation if NOT using vacuum
         if (!isVacuuming) 
         {
+           
             if (selectedPlayer == 1) {
                 if (walkFrame == 0)      PlayerSprite.setTextureRect(IntRect(25, 39, 208, 261));
                 else if (walkFrame == 1) PlayerSprite.setTextureRect(IntRect(260, 39, 208, 261));
@@ -439,9 +433,10 @@ void movement(
     // RIGHT MOVEMENT
     if (Keyboard::isKeyPressed(Keyboard::Right))
     {
-        if (vacuumdir == 'A') vacuumdir = 'D';
+        vacuumdir = 'D';
         facingRight = true;
         player_x += speed;
+       
 
         // Only play walking animation if NOT using vacuum
         if (!isVacuuming)
@@ -532,46 +527,41 @@ void vacuumMovement(char &vacuumdir){
     if(Keyboard::isKeyPressed(Keyboard::S)) vacuumdir = 'S';
     if(Keyboard::isKeyPressed(Keyboard::A)) vacuumdir = 'A';
 }
+// imagines a box (for vacuum suction) around player 
+bool vacuumBox(float player_x, float player_y, char vacuumdir, float enemy_x, float enemy_y)
+{
+    bool isinBox = false;
+    if (vacuumdir == 'D') { //box on right
+        if (enemy_x > player_x && enemy_x < player_x + 150 && abs(player_y - enemy_y) < 80)
+            isinBox = true;
+    } 
+    else if (vacuumdir == 'A') { //box on left
+        if (enemy_x > player_x - 150 && enemy_x < player_x && abs(player_y - enemy_y) < 80)
+            isinBox = true;
+    }
+    else if (vacuumdir == 'W') { //box above
+        if (enemy_y > player_y - 150 && enemy_y < player_y && abs(player_x - enemy_x) < 80)
+            isinBox = true;
+    }
+    else if (vacuumdir == 'S') { //box down
+        if (enemy_y > player_y && enemy_y < player_y + 150 && abs(player_x - enemy_x) < 80)
+            isinBox = true;
+    }
+    return isinBox;
+}
 
-void vacuumRangeCheck(float player_x, float player_y, char vacuumdir, float enemy_x[], float enemy_y[], int enemy_capture_state[], int num_enemies , int enemy_in_vacuum, int levelstorecap) //this is to modify enemy_state[i] to use them for suction later
+void vacuumsuctionMarking(float player_x, float player_y, char vacuumdir, float enemy_x[], float enemy_y[], int enemy_capture_state[], int num_enemies , int enemy_in_vacuum, int levelstorecap) //this is to modify enemy_state[i] to use them for suction later
 {
     if (Keyboard::isKeyPressed(Keyboard::Space)) 
     {
+       
         if (enemy_in_vacuum >= levelstorecap) return; //level cap for storing enemies (hence vacuum wont store any further than that)
         for (int i = 0; i < num_enemies; i++) //checks for all enemies
         {
-            if (enemy_capture_state[i] == 0)  //means walking
+            if (enemy_capture_state[i] == 0)  //means walking , so it will check for only walking enemies
             {
-                bool inRange = false;
-
-                if (vacuumdir == 'D') { // right
-                    if (enemy_x[i] > player_x && enemy_x[i] < player_x + 150 && abs(player_y - enemy_y[i]) < 80) {
-                        inRange = true;
-                    }
-                } 
-                else if (vacuumdir == 'A') { // left
-                    if (enemy_x[i] > player_x - 150 && enemy_x[i] < player_x && abs(player_y - enemy_y[i]) < 80) {
-                        inRange = true;
-                    }
-                }
-                else if (vacuumdir == 'W') { // up
-                    //  y must be above player (player_y - 150 to player_y)
-                    //  x must be close (abs(player_x - enemy_x[i]) < 80)
-                    if ( enemy_y[i] > player_y - 150 && enemy_y[i] < player_y && abs(player_x - enemy_x[i]) < 80 ) {
-                        inRange = true;
-                    }
-                }
-                else if (vacuumdir == 'S') { // down
-                     //  y must be below player (player_y to player_y + 150)
-                     //  x must be close
-                    if ( enemy_y[i] > player_y && enemy_y[i] < player_y + 150 && abs(player_x - enemy_x[i]) < 80 ) {
-                        inRange = true;
-                    }
-                }
-
-                if (inRange) {
-                        enemy_capture_state[i] = 1; //being sucked
-                }
+                if(vacuumBox(player_x, player_y, vacuumdir, enemy_x[i], enemy_y[i]))
+                    enemy_capture_state[i] =1; //marks for suction
             }
         }
     }
@@ -628,6 +618,231 @@ void adjustVacuumSprites(Sprite& sprite, char vacuumdir, int selectedPlayer)
                 sprite.move(0, -70); 
             }
         }
+    }
+}
+// void suctionTImer(int &suctiontimer){
+//     if(Keyboard::isKeyPressed(Keyboard::Space))
+//         suctiontimer++;
+//     else
+//         suctiontimer = 0;
+// }
+void updateEnemytype(int enemytype[] , int counter  , int type){
+// to agr 1 hoga to array ki usth element ko 1 krdena , or agr 2 hoga to 2 krdena
+    enemytype[counter] = type;
+}
+
+// void enemy_throw(){
+//     if(Keyboard::isKeyPressed(Keyboard::F)){
+//         if(enemy in vaccum){
+//             see_which_enemy_is_last_by_that_updateenemyarray();
+//             (checks vacuum dir){
+//                 spawns_its_sprite accordingly();
+//                     if(at floor)
+//                         if(vacuumdir = right)
+//                             sprite_starts_moving_right;
+//                             kills_enemies_in_way;
+//                             bounces off any edge and only disappears when reaches the bottom left
+                    
+//             }
+//         }
+//         }
+    
+// }
+void enemy_throw(
+    int enemytype[], int& enemies_in_vacuum, int& counter_etype,
+    float player_x, float player_y, char vacuumdir,
+    float skel_x[], float skel_y[], int skel_capture_state[], int NUM_SKELETONS,
+    float ghost_x[], float ghost_y[], int ghost_capture_state[], int NUM_GHOSTS,
+    float skel_throw_speedx[], float skel_throw_speedy[],
+    float ghost_throw_speedx[], float ghost_throw_speedy[],
+    int skel_throw_timer[], 
+    int ghost_throw_timer[],
+
+    bool singleShot, int cell_size , int skel_streak[] , int ghost_streak[])
+{
+    if (enemies_in_vacuum <= 0) return; 
+    // checks if player is on bottom platform (row 10)
+    int player_feet_row = (int)((player_y + 99) / cell_size); 
+    // prevents downward throw if on bottom platform
+    if (vacuumdir == 'S' && player_feet_row >= 10) 
+        return; 
+    int releasCount = singleShot ? 1 : enemies_in_vacuum; 
+    for (int release = 0; release < releasCount; release++)
+    {
+        if (enemies_in_vacuum <= 0) break;
+            counter_etype--; 
+        int type = enemytype[counter_etype];
+        
+        float Vx = 0; 
+        float Vy = 0;
+        float spawnOffsetX = 0; //applying offset to decrease abruptness
+
+        if(vacuumdir == 'D'){
+            Vx = 8; Vy = -15; 
+            spawnOffsetX = 50; // spawn slightly to the right
+        }
+        else if(vacuumdir == 'A'){
+            Vx = -8; Vy = -15; 
+            spawnOffsetX = -20; // spawn slightly to the left
+        }
+        else if(vacuumdir == 'S'){
+            Vx = 0; Vy = 12;   
+        }
+        else if(vacuumdir == 'W'){
+            Vx = 0; Vy = -20;  
+        }
+
+        if (type == 1) // Skeleton
+        {
+            for (int i = 0; i < NUM_SKELETONS; i++)
+            {
+                if (skel_capture_state[i] == 2) 
+                {
+                    skel_x[i] = player_x + spawnOffsetX; // applying offset
+                    skel_y[i] = player_y;
+                    skel_capture_state[i] = 4; 
+                    skel_throw_speedx[i] = Vx;
+                    skel_throw_speedy[i] = Vy;
+                    skel_throw_timer[i] = 0; //resetting timer
+                    skel_streak[i] = 0;
+                    enemies_in_vacuum--;
+                    break;  
+                }
+            }
+        }
+        else if (type == 2) // Ghost
+        {
+            for (int i = 0; i < NUM_GHOSTS; i++)
+            {
+                if (ghost_capture_state[i] == 2) 
+                {
+                    ghost_x[i] = player_x + spawnOffsetX; // applying offset
+                    ghost_y[i] = player_y;
+                    ghost_capture_state[i] = 4; 
+                    ghost_throw_speedx[i] = Vx;
+                    ghost_throw_speedy[i] = Vy;
+                    ghost_throw_timer[i] = 0; // resetting timer
+                    ghost_streak[i]  = 0;
+                    enemies_in_vacuum--;
+                    break;
+                }
+            }
+        }
+    }
+}
+void throw_gravity(float& x, float& y, float& vel_x, float& vel_y, int& timer, int& capture_state, char** lvl, int cell_size, int width, int height, int enemy_width, int enemy_height)
+{
+    const float GRAVITY = 1.2f;
+    const float GROUND_SPEED = 8.0f;
+    timer++; //timer to count frames
+    // determines if vertical throw (down 'S' or up 'W')
+    bool isVerticalThrow = (abs(vel_x) < 0.1f);
+    // coodinates updated
+    x += vel_x;
+    y += vel_y;
+    
+    int feet_row = (int)((y + enemy_height) / cell_size);
+    int col = (int)(x / cell_size);
+    
+    // boundary checks
+    if (feet_row >= height) feet_row = height - 1;
+    if (feet_row < 0) feet_row = 0;
+    if (col < 0) col = 0;
+    if (col >= width) col = width - 1;
+    
+    // despawn checks
+    if (vel_x < 0 && x <= 0) { capture_state = -1; return; }
+    if (y + enemy_height >= height * cell_size) { capture_state = -1; return; }
+    if (feet_row >= height - 1 && x <= cell_size * 2) { capture_state = -1; return; }
+    
+    // collision with ground
+    bool hitGround = false;
+    
+    // only check ground if moving down
+    if (feet_row < height && vel_y > 0) 
+    {
+        if (lvl[feet_row][col] == '#') 
+        {
+            // IF vertical throw
+            // Ignore collision for the first 15 frames to let it pass through the first floor
+            if (isVerticalThrow && timer < 10) {
+                hitGround = false; 
+            } 
+            else {
+                hitGround = true;
+            }
+        }
+    }
+    if (hitGround){
+        y = feet_row * cell_size - enemy_height;
+        vel_y = 0;
+        // starts rolling
+        if (abs(vel_x) < 0.1f) {
+            vel_x = GROUND_SPEED; // default roll to right
+        }
+        else if (vel_x > 0) vel_x = GROUND_SPEED;
+        else if (vel_x < 0) vel_x = -GROUND_SPEED;
+    }
+    else
+    {
+        vel_y += GRAVITY;
+    }
+    //collisions with the walls
+    int mid_row = (int)((y + enemy_height / 2) / cell_size);
+    if (mid_row >= height) mid_row = height - 1; 
+    if (mid_row < 0) mid_row = 0;
+    // checks right wall
+    if (vel_x > 0) {
+        int right_col = (int)((x + enemy_width) / cell_size);
+        if (right_col >= width) right_col = width - 1;
+        // only check for wall if we are essentially touching the right side of the current cell
+        // checking if within 10 pixels
+        bool touchingRightEdge = ((int)(x + enemy_width) % cell_size) > (cell_size - 10);
+        if (x + enemy_width >= width * cell_size) {
+            vel_x = -GROUND_SPEED; 
+        }
+        else if (right_col < width && lvl[mid_row][right_col] == '#' && touchingRightEdge) {
+            vel_x = -GROUND_SPEED; 
+        }
+    }
+    // checks left wall
+    if (vel_x < 0) {
+        int left_col = (int)(x / cell_size);
+        if (left_col < 0) left_col = 0;
+        // Only check for wall if we are touching the left side of the current cell
+        bool touchingLeftEdge = ((int)x % cell_size) < 10;
+        if (x <= 0) { capture_state = -1; return; }
+        else if (left_col > 0 && lvl[mid_row][left_col - 1] == '#' && touchingLeftEdge) {
+            vel_x = GROUND_SPEED; 
+        }
+    }
+    
+    //top
+    if (y <= 0) {
+        y = 0; vel_y = 5.0f;
+        if (abs(vel_x) < 0.1f) vel_x = GROUND_SPEED;
+    }
+    if (vel_y < 0) {
+        int head_row = (int)(y / cell_size);
+        if (head_row >= 0 && head_row < height && col >= 0 && col < width) {
+            if (lvl[head_row][col] == '#') {
+                if (isVerticalThrow && timer < 15) {
+                    // Do nothing, let it pass through top
+                } else {
+                    y = (head_row + 1) * cell_size;
+                    vel_y = 0;
+                    if (abs(vel_x) < 0.1f) vel_x = GROUND_SPEED;
+                }
+            }
+        }
+    }
+}
+void drawHealth(int playerHealth , Sprite heartSprite , RenderWindow &window){
+    if(playerHealth == 0) return;
+    for(int i = 0 ; i< playerHealth ; i++){
+        heartSprite.setScale(0.01,0.01);
+        heartSprite.setPosition(20 + i*50, 20);
+        window.draw(heartSprite);
     }
 }
 
@@ -698,6 +913,18 @@ int main()
     menutext2bSprite.setTexture(menutext2Tex);
     menutext2bSprite.setTextureRect(IntRect(25,273,1050,81));
     menutext2bSprite.setScale(0.2,0.2);
+
+    //Scoring System
+    Font gamefont;
+    gamefont.loadFromFile("Data/font.ttf");
+    Text scoreText;
+    scoreText.setFont(gamefont);
+    scoreText.setFillColor(Color::White);
+    scoreText.setPosition(900 , 20);
+    //scoreText.setScale(500 , 500);
+ 
+
+
     //Music initialisation
     Music lvlMusic;
 
@@ -803,6 +1030,12 @@ int main()
     Sprite  Player1DeathSprite;
     Texture Player2DeathTex;
     Sprite  Player2DeathSprite;
+    // Heart(health) texture
+    Texture heartTex; 
+    heartTex.loadFromFile("Data/heart.png");
+    Sprite heartSprite;
+    heartSprite.setTexture(heartTex);
+    heartSprite.setScale(0.5, 0.5);
     
 
     Player1VacTex.loadFromFile("Data/player1_vacuum.png"); 
@@ -824,18 +1057,41 @@ int main()
     Player2Sprite.setTexture(Player2Texture);
     Player2Sprite.setTextureRect(IntRect(23,56,173, 218));
 
+
     //vacuum data
     char vacuumdir = 'D' ; //d for right , w for up , and so on , d is default cause facing right
     float suctionspeed = 6.0f;
     int enemies_in_vacuum = 0;
     const int levelstorecap = 3; //initally set for level 1
     
-    // Capture States: 0=Walking, 1=Being Sucked, 2=Captured
-    int skel_capture_state[NUM_SKELETONS] = {0}; //0 for walking , 1 for being sucked , 2 for completely sucked (i.e , not there anymore) , default is 0(walking)
+    // Capture States: -1 = despawn  0=Walking, 2=Captured 4 = projectile
+    int skel_capture_state[NUM_SKELETONS] = {0}; 
     int ghost_capture_state[NUM_GHOSTS] = {0};
     int vacuumStorage[levelstorecap]; //currently for level 1 only
+   // not using for now
+    // int suctiontimer = 0; //for stunning mechanism
+    // int stuntime = 90;
+    int enemytype[levelstorecap] = {0,0,0}; //for keeping track when throwing back  1 for skeleton , 2 for ghost
+    int counter_etpye = 0 ; //counter for the enemy type array
+    // Skeleton Projectile Data
+    float skel_projectile_speed_x[NUM_SKELETONS] = {0};
+    float skel_projectile_speed_y[NUM_SKELETONS] = {0};
+    int   skel_throw_timer[NUM_SKELETONS] = {0};
+    // Ghost Projectile Data
+    float ghost_throw_speed_x[NUM_GHOSTS] = {0};
+    float ghost_throw_speed_y[NUM_GHOSTS] = {0};
+    int   ghost_throw_timer[NUM_GHOSTS] = {0};
 
+    bool eKeyWasPressed = false; 
+    bool qKeyWasPressed = false;
 
+    //Scoring system
+    int score = 0;
+    int skel_streak[NUM_SKELETONS] = {0};
+    int ghost_streak[NUM_GHOSTS] = {0};
+    
+    
+    
     //creating level array
     lvl = new char* [height];
     for (int i = 0; i < height; i++)
@@ -1060,18 +1316,44 @@ int main()
 
                 // INPUT & PHYSICS
                 vacuumMovement(vacuumdir);
-                vacuumRangeCheck(player_x, player_y, vacuumdir, skel_x, skel_y, skel_capture_state, NUM_SKELETONS , enemies_in_vacuum , levelstorecap);
-                vacuumRangeCheck(player_x, player_y, vacuumdir, ghost_x, ghost_y, ghost_capture_state, NUM_GHOSTS , enemies_in_vacuum  , levelstorecap);
-                
                 movement(onGround, velocityY, jumpStrength, isJumping, player_x, player_y, PlayerSprite, speed, cell_size, PlayerHeight, selectedPlayer, 
-                         walkFrame, facingRight, vacuumdir, Player1Texture, Player2Texture, Player1VacTex, Player2VacTex);
+                        walkFrame, facingRight, vacuumdir, Player1Texture, Player2Texture, Player1VacTex, Player2VacTex);
+                vacuumsuctionMarking(player_x, player_y, vacuumdir, ghost_x, ghost_y, ghost_capture_state, NUM_GHOSTS , enemies_in_vacuum  , levelstorecap);
+                vacuumsuctionMarking(player_x, player_y, vacuumdir, skel_x, skel_y, skel_capture_state, NUM_SKELETONS , enemies_in_vacuum , levelstorecap);
+                // Single Shot - press E to release ONE enemy
+                if (Keyboard::isKeyPressed(Keyboard::E)) {
+                    if (!eKeyWasPressed) { // Only fire once per key press
+                        enemy_throw(enemytype, enemies_in_vacuum, counter_etpye, player_x, player_y, vacuumdir,
+                                    skel_x, skel_y, skel_capture_state, NUM_SKELETONS,
+                                    ghost_x, ghost_y, ghost_capture_state, NUM_GHOSTS,
+                                    skel_projectile_speed_x, skel_projectile_speed_y, 
+                                    ghost_throw_speed_x, ghost_throw_speed_y,skel_throw_timer, ghost_throw_timer, 1, cell_size , skel_streak , ghost_streak);
+                        eKeyWasPressed = true;
+                    }
+                } else {
+                    eKeyWasPressed = false;
+                }
 
-                player_gravity(lvl,offset_y,velocityY,onGround,gravity,terminal_Velocity, player_x, player_y, cell_size, PlayerHeight, PlayerWidth);
+                // Burst Shot - press Q to release ALL enemies
+                if (Keyboard::isKeyPressed(Keyboard::Q)) {
+                    if (!qKeyWasPressed) { // Only fire once per key press
+                        enemy_throw(enemytype, enemies_in_vacuum, counter_etpye, player_x, player_y, vacuumdir,
+                                    skel_x, skel_y, skel_capture_state, NUM_SKELETONS,
+                                    ghost_x, ghost_y, ghost_capture_state, NUM_GHOSTS,
+                                    skel_projectile_speed_x, skel_projectile_speed_y, 
+                                    ghost_throw_speed_x, ghost_throw_speed_y, skel_throw_timer, ghost_throw_timer, 1, cell_size , skel_streak , ghost_streak);
+                        qKeyWasPressed = true;
+                    }
+                } else {
+                    qKeyWasPressed = false;
+                }
+                                player_gravity(lvl,offset_y,velocityY,onGround,gravity,terminal_Velocity, player_x, player_y, cell_size, PlayerHeight, PlayerWidth);
                 screenborder(player_x , player_y , PlayerWidth , velocityY , screen_x); 
-                
                 PlayerSprite.setPosition(player_x, player_y);
                 adjustVacuumSprites(PlayerSprite, vacuumdir, selectedPlayer);
                 window.draw(PlayerSprite);
+
+                
             }
 
             //
@@ -1081,53 +1363,141 @@ int main()
             // SKELETONS
             for (int i = 0; i < NUM_SKELETONS; i++)
             {
-                if (skel_capture_state[i] != 2) 
+                // skip despawned enemies
+                if (skel_capture_state[i] == -1) continue;
+                
+                if (skel_capture_state[i] != 2) // process everyone who is not captured
                 {
                     if (skel_capture_state[i] == 0) {
                         // only move if player is not dying
                         if (!isDying && skelPlatformState[i] == 0)
                             update_enemy_logic(skel_x[i], skel_y[i], skel_speed[i], skeletons[i], lvl, width, cell_size, skel_width, skel_height);
+                            skele_platform_switch(i, skel_x[i], skel_y[i], skelPlatformState[i], skelTimer[i], skelStartY[i], skelTargetY[i], skeletons[i], lvl, height, cell_size, skel_height);
                         
-                        skele_platform_switch(i, skel_x[i], skel_y[i], skelPlatformState[i], skelTimer[i], skelStartY[i], skelTargetY[i], skeletons[i], lvl, height, cell_size, skel_height);
-                        
-                        if (skelPlatformState[i] == 0) animate_skeleton(skeletons[i], enemyFrame);
+                        if (skelPlatformState[i] == 0) 
+                            animate_skeleton(skeletons[i], enemyFrame);
                     }
                     else if (skel_capture_state[i] == 1) {
-                         /// Vacuum logic 
-                         if (skel_x[i] < player_x) skel_x[i] += suctionspeed;
-                         else skel_x[i] -= suctionspeed;
-                         if (skel_y[i] < player_y) skel_y[i] += suctionspeed;
-                         else skel_y[i] -= suctionspeed;
-                         skeletons[i].setPosition(skel_x[i], skel_y[i]);
-                         
-                         if (abs(player_x - skel_x[i]) < 10 && abs(player_y - skel_y[i]) < 10) {
-                            if (enemies_in_vacuum < 3) {
-                                skel_capture_state[i] = 2; 
-                                enemies_in_vacuum++; 
-                            } else { skel_capture_state[i] = 0; }
-                        }
-                        animate_skeleton(skeletons[i], enemyFrame);
+                        // bool stillInBox = vacuumBox(player_x, player_y, vacuumdir, skel_x[i], skel_y[i]);
+                        // bool spaceHeld = Keyboard::isKeyPressed(Keyboard::Space);
+                        // if (!spaceHeld || !stillInBox) {
+                        //     skel_capture_state[i] = 3;
+                        // }
+                        // else if (suctiontimer >= 120)
+                        // {
+                        //     if(enemies_in_vacuum < 3){
+                        //         skel_capture_state[i] = 2;
+                        //         enemies_in_vacuum++;
+                        //         updateEnemytype(enemytype , counter_etpye , 1); 
+                        //         counter_etpye++;
+                        //     }
+                        //     else 
+                        //         skel_capture_state[i] = 0;
+                        // }
+                        // else
+                        // {
+                            if (skel_x[i] < player_x)
+                                skel_x[i] += suctionspeed;
+                            else 
+                                skel_x[i] -= suctionspeed;
+                            if (skel_y[i] < player_y)
+                                skel_y[i] += suctionspeed;
+                            else 
+                                skel_y[i] -= suctionspeed;
+                            
+                            skeletons[i].setPosition(skel_x[i], skel_y[i]);
+                            
+                            if (abs(player_x - skel_x[i]) < 10 && abs(player_y - skel_y[i]) < 10) {
+                                if (enemies_in_vacuum < 3) {
+                                    skel_capture_state[i] = 2;
+                                    enemies_in_vacuum++;
+                                    updateEnemytype(enemytype , counter_etpye , 1); 
+                                    counter_etpye++;
+                                    score += 75 ;
+                                } else {
+                                    skel_capture_state[i] = 0; 
+                                }
+                            }
+                            animate_skeleton(skeletons[i], enemyFrame);
+                        
                     }
+                    // else if (skel_capture_state[i] == 3) {
+                    //     skeletons[i].setTextureRect(IntRect(223, 34, 26, 38));
+                    //     if (suctiontimer == 0) {
+                    //         skel_capture_state[i] = 0;
+                    //     }
+                    // }
+                    else if(skel_capture_state[i] == 4) {
+                        throw_gravity(skel_x[i], skel_y[i],skel_projectile_speed_x[i], skel_projectile_speed_y[i],skel_throw_timer[i], skel_capture_state[i],lvl, cell_size, width, height, skel_width, skel_height);
+                        skeletons[i].setPosition(skel_x[i], skel_y[i]);
+                        // Check collision with other skeletons
+                        for (int j = 0; j < NUM_SKELETONS; j++)
+                        {
+                            if (j != i && skel_capture_state[j] == 0)
+                            {
+                                if (checkCollision(skel_x[i], skel_y[i], skel_width, skel_height,skel_x[j], skel_y[j], skel_width, skel_height)){
+                                    skel_capture_state[j] = -1; // despawn defeated enemy
+                                    skel_streak[i]++; //adds to streak for that projectile
+                                    //calculate  Score based on streak
+                                    int points = 75*2; // x2 due to projectile (default)
+                                    if (skel_streak[i] == 2) points = 200;      // multikill 2
+                                    else if (skel_streak[i] >= 3) points = 500;  // ... 3+
+                                    //checking for mid air bonus
+                                    int feet_r = (int)((skel_y[j] + skel_height) / cell_size);
+                                    int feet_c = (int)((skel_x[j] + 15) / cell_size); // +15 for center
+                                    if (feet_r < height && lvl[feet_r][feet_c] != '#') {
+                                        points += 150; 
+                                    }
 
-                    // 
-                    // only check collision if player is not already dying
+                                    score += points;
+
+                                }
+                            }
+                        }
+                        // Check collision with ghosts
+                        for (int j = 0; j < NUM_GHOSTS; j++)
+                        {
+                            if (ghost_capture_state[j] == 0)
+                            {
+                                if (checkCollision(skel_x[i], skel_y[i], skel_width, skel_height,
+                                                ghost_x[j], ghost_y[j], ghost_width, ghost_height))
+                                {
+                                    ghost_capture_state[j] = -1; // DESPAWN
+                                        skel_streak[i]++; //adds to streak for that projectile
+                                    //calculate  Score based on streak
+                                    int points = 50*2; // x2 due to projectile (default)
+                                    if (skel_streak[i] == 2) points = 200;      // multikill 2
+                                    else if (skel_streak[i] >= 3) points = 500;  // ... 3+
+                                    //since ghost cant be mid air , so no bonus
+                                    score += points;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // ONLY check player collision if in WALKING state (0)
                     if (!isDying && skel_capture_state[i] == 0) 
                     {
-                        // Check collision
                         if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight, skel_x[i], skel_y[i], skel_width, skel_height))
                         {
-                            isDying = true;  // Start death sequence
+                            isDying = true;
                             deathTimer = 0;
                             deathFrame = 0;
                         }
                     }
+                } // closing bracket for if (skel_capture_state[i] != 2)
+                
+                // Only draw if not despawned
+                if (skel_capture_state[i] != -1 && skel_capture_state[i] != 2)
                     window.draw(skeletons[i]);
-                }
-            }
+            } // closing bracket for skeleton loop
 
             // --- GHOSTS ---
             for (int i = 0; i < NUM_GHOSTS; i++)
             {
+                // Skip despawned ghosts
+                if (ghost_capture_state[i] == -1) continue;
+                
                 if (ghost_capture_state[i] != 2)
                 {
                     if (ghost_capture_state[i] == 0) {
@@ -1135,52 +1505,139 @@ int main()
                             ghostPause[i]--;
                             if (ghostPause[i] == 0) {
                                 ghost_speed[i] = -ghost_speed[i];
-                                if (ghost_speed[i] > 0) ghosts[i].setScale(-2.5, 2.5);
-                                else ghosts[i].setScale( 2.5, 2.5);
+                                if (ghost_speed[i] > 0) 
+                                    ghosts[i].setScale(-2.5, 2.5);
+                                else 
+                                    ghosts[i].setScale( 2.5, 2.5);
                             }
-                        } else {
-                            if (rand() % 300 == 0) ghostPause[i] = 120;
-                            else if (!isDying) // Only move if not dying
+                        } 
+                        else {
+                            if (rand() % 300 == 0) 
+                                ghostPause[i] = 120;
+                            else if (!isDying)
                                 update_enemy_logic(ghost_x[i], ghost_y[i], ghost_speed[i], ghosts[i], lvl, width, cell_size, ghost_width, ghost_height);
                         }
-                        if (ghost_speed[i] >= 0) ghosts[i].setPosition(ghost_x[i] + ghost_width, ghost_y[i]);
-                        else ghosts[i].setPosition(ghost_x[i], ghost_y[i]);
+                        if (ghost_speed[i] >= 0) 
+                            ghosts[i].setPosition(ghost_x[i] + ghost_width, ghost_y[i]);
+                        else 
+                            ghosts[i].setPosition(ghost_x[i], ghost_y[i]);
+                        animate_ghost(ghosts[i], enemyFrame);  
+
                     }
                     else if (ghost_capture_state[i] == 1) {
-                        if (ghost_x[i] < player_x) ghost_x[i] += suctionspeed;
-                        else ghost_x[i] -= suctionspeed;
-                        if (ghost_y[i] < player_y) ghost_y[i] += suctionspeed;
-                        else ghost_y[i] -= suctionspeed;
+                        if (ghost_x[i] < player_x)
+                            ghost_x[i] += suctionspeed;
+                        else 
+                            ghost_x[i] -= suctionspeed;
+                        if (ghost_y[i] < player_y)
+                            ghost_y[i] += suctionspeed;
+                        else 
+                            ghost_y[i] -= suctionspeed;
+                        
                         ghosts[i].setPosition(ghost_x[i], ghost_y[i]);
+                        
                         if (abs(player_x - ghost_x[i]) < 10 && abs(player_y - ghost_y[i]) < 10) {
-                            if (enemies_in_vacuum < 3) { ghost_capture_state[i] = 2; enemies_in_vacuum++; } 
-                            else { ghost_capture_state[i] = 0; } 
+                            if (enemies_in_vacuum < 3) { 
+                                ghost_capture_state[i] = 2;
+                                enemies_in_vacuum++;
+                                updateEnemytype(enemytype , counter_etpye, 2);
+                                counter_etpye++;
+                                score += 50;
+                            } 
+                            else {
+                                ghost_capture_state[i] = 0; 
+                            } 
+                        }
+                    }
+                    else if(ghost_capture_state[i] == 4) {
+                        // GHOST PROJECTILE PHYSICS
+                        throw_gravity(
+                            ghost_x[i], ghost_y[i],
+                            ghost_throw_speed_x[i], ghost_throw_speed_y[i],
+                            ghost_throw_timer[i], ghost_capture_state[i],
+                            lvl, cell_size, width, height, ghost_width, ghost_height
+                        );
+                        ghosts[i].setPosition(ghost_x[i], ghost_y[i]);
+                        
+                        // Check collision with skeletons
+                        for (int j = 0; j < NUM_SKELETONS; j++)
+                        {
+                            if (skel_capture_state[j] == 0)
+                            {
+                                if (checkCollision(ghost_x[i], ghost_y[i], ghost_width, ghost_height,
+                                                skel_x[j], skel_y[j], skel_width, skel_height))
+                                {
+                                    skel_capture_state[j] = -1; // DESPAWN
+                                        ghost_streak[i]++; //adds to streak for that projectile
+                                    //calculate  Score based on streak
+                                    int points = 75*2; // x2 due to projectile (default)
+                                    if (ghost_streak[i] == 2) points = 200;      // multikill 2
+                                    else if (ghost_streak[i] >= 3) points = 500;  // ... 3+
+                                    //checking for mid air bonus
+                                    int feet_r = (int)((skel_y[j] + skel_height) / cell_size);
+                                    int feet_c = (int)((skel_x[j] + 15) / cell_size); // +15 for center
+                                    if (feet_r < height && lvl[feet_r][feet_c] != '#') {
+                                        points += 150; 
+                                    }
+
+                                    score += points;
+                                }
+                            }
+                        }
+                        // Check collision with OTHER ghosts
+                        for (int j = 0; j < NUM_GHOSTS; j++)
+                        {
+                            if (j != i && ghost_capture_state[j] == 0)
+                            {
+                                if (checkCollision(ghost_x[i], ghost_y[i], ghost_width, ghost_height,
+                                                ghost_x[j], ghost_y[j], ghost_width, ghost_height))
+                                {
+                                    ghost_capture_state[j] = -1; // DESPAWN
+                                         skel_streak[i]++; //adds to streak for that projectile
+                                    //calculate  Score based on streak
+                                    int points = 50*2; // x2 due to projectile (default)
+                                    if (ghost_streak[i] == 2) points = 200;      // multikill 2
+                                    else if (ghost_streak[i] >= 3) points = 500;  // ... 3+
+                                    score += points;
+                                }
+                            }
                         }
                     }
 
-                    animate_ghost(ghosts[i], enemyFrame);
+                   
 
-                    
+                    // ONLY check player collision if in WALKING state (0)
                     if (!isDying && ghost_capture_state[i] == 0)
                     {
-                    
                         if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight, ghost_x[i], ghost_y[i], ghost_width, ghost_height))
                         {
-                            isDying = true; // Start death sequence
+                            isDying = true;
                             deathTimer = 0;
                             deathFrame = 0;
                         }
                     }
+                } // closing bracket for if (ghost_capture_state[i] != 2)
+                
+                // Only draw if not despawned
+                if (ghost_capture_state[i] != -1 && ghost_capture_state[i] != 2)
                     window.draw(ghosts[i]);
-                }
-            }
+            } //  closing bracket for whole ghost loop
+        //Drawing Health sprites
+        drawHealth(playerHealth , heartSprite , window);
+        //displaying score
+        scoreText.setString("Score: " + to_string(score));
+        window.draw(scoreText);
+        
+        
+        
+        }
             window.display();
         }
         // else if(state == 3) //gameover state
         // {
         //     window.close();
         // }
-    }
+    
     
     //stopping music and deleting level array
     lvlMusic.stop();
