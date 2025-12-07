@@ -1068,9 +1068,6 @@ int main()
     int skel_capture_state[NUM_SKELETONS] = {0}; 
     int ghost_capture_state[NUM_GHOSTS] = {0};
     int vacuumStorage[levelstorecap]; //currently for level 1 only
-   // not using for now
-    // int suctiontimer = 0; //for stunning mechanism
-    // int stuntime = 90;
     int enemytype[levelstorecap] = {0,0,0}; //for keeping track when throwing back  1 for skeleton , 2 for ghost
     int counter_etpye = 0 ; //counter for the enemy type array
     // Skeleton Projectile Data
@@ -1089,6 +1086,9 @@ int main()
     int score = 0;
     int skel_streak[NUM_SKELETONS] = {0};
     int ghost_streak[NUM_GHOSTS] = {0};
+    bool nodamage = true; //for no damage bonus
+    int lvlframes = 0;
+    bool lvlcleared = false;
     
     
     
@@ -1217,6 +1217,7 @@ int main()
                 state = 2; 
             
                 selectedPlayer = 2;
+                suctionspeed *= 1.2;
                 Player1Sprite.setScale(0.38, 0.38); 
                 Player2Sprite.setScale(0.41, 0.41); 
 
@@ -1243,6 +1244,8 @@ int main()
 
         else if(state == 2) //gameplay state
         {
+            if(!lvlcleared)
+                lvlframes++;
             window.clear();
             display_level(window, lvl, bgTex, bgSprite, blockTexture, blockSprite, height, width, cell_size);
 
@@ -1279,7 +1282,9 @@ int main()
                     playerHealth--; // Decrease health  after animation
                     
                     if (playerHealth <= 0) {
-                       
+                        score -= 200;
+                    if(score < 0)
+                        score = 0;
                         ////////////// state = 3; Game Over
                         // FOR DEBUGGING: Restart game if health <= 0
                         // (Prevent Infinite Loop)
@@ -1337,6 +1342,7 @@ int main()
                 // Burst Shot - press Q to release ALL enemies
                 if (Keyboard::isKeyPressed(Keyboard::Q)) {
                     if (!qKeyWasPressed) { // Only fire once per key press
+                        if(enemies_in_vacuum>=3) score += 300; //>3 for level 2
                         enemy_throw(enemytype, enemies_in_vacuum, counter_etpye, player_x, player_y, vacuumdir,
                                     skel_x, skel_y, skel_capture_state, NUM_SKELETONS,
                                     ghost_x, ghost_y, ghost_capture_state, NUM_GHOSTS,
@@ -1480,6 +1486,9 @@ int main()
                     {
                         if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight, skel_x[i], skel_y[i], skel_width, skel_height))
                         {
+                            if (!isDying && score != 0)  
+                                score -= 50; // subtracting only once per damage event
+                            nodamage = false;
                             isDying = true;
                             deathTimer = 0;
                             deathFrame = 0;
@@ -1611,6 +1620,9 @@ int main()
                     {
                         if (checkCollision(player_x, player_y, PlayerWidth, PlayerHeight, ghost_x[i], ghost_y[i], ghost_width, ghost_height))
                         {
+                            if (!isDying && score != 0) 
+                                score -= 50;  // subtracting only  once per damage event
+                            nodamage = false;
                             isDying = true;
                             deathTimer = 0;
                             deathFrame = 0;
