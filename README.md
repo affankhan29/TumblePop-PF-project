@@ -1,0 +1,1 @@
+Those crazy-ass people at FAST made us create a 2D Tumble Pop game in C++ for our Programming Fundamentals course. WE WERE JUST FIRST-SEMESTER STUDENTS, HELLLLL! Jokes aside, Ayan and I really enjoyed creating this game and learned a looooooot of stuff from this project.
